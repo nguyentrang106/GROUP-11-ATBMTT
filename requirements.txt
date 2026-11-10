@@ -1,0 +1,9 @@
+# Giao diện (demo/gui/) — chỉ dùng để vẽ giao diện, không tham gia tính toán mật mã
+PySide6>=6.6
+
+# Kiểm thử
+pytest>=8
+pytest-qt>=4.4
+
+# CHỈ dùng trong tests/ (đối chiếu) và scenarios/s6_sign_then_encrypt.py (AES-GCM, ngoài lõi)
+cryptography>=42
