@@ -42,7 +42,7 @@ class TinyRSA:
         keypair_from_primes(self.p, self.q, self.e, logger)
 
     def hash_value(self, message: bytes | int, logger: StepLogger | None = None) -> int:
-        """h(x): bytes thì băm SHA-256 rồi lấy mod n; số nguyên thì ký thẳng x (ví dụ lớp, không băm)."""
+        """h(x): bytes thì băm SHA-256 rồi lấy mod n; số nguyên thì ký thẳng x (ví dụ lớp số nhỏ, nên không băm trước)."""
         if isinstance(message, int):
             if not 0 <= message < self.n:
                 raise ValueError(f"x phải thoả 0 <= x < n = {self.n}")
