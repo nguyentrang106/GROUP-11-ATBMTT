@@ -1,7 +1,7 @@
 """RSA-OAEP/SHA-256 và gói z cho demo ký rồi mã hoá.
 
-OAEP theo RFC 8017, mục 7.1. Gói nhiều khối là định dạng riêng của demo,
-giới hạn thông điệp 16 KiB; không phải định dạng trao đổi chuẩn.
+OAEP theo RFC 8017, Gói nhiều khối là định dạng riêng của demo do nhóm tự set,
+giới hạn thông điệp 16 KiB; không phải định dạng trao đổi chuẩn quốc tế. 
 Nhãn OAEP gắn từng khối với mã gói ngẫu nhiên, vị trí và tổng số khối.
 """
 from __future__ import annotations
