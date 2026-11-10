@@ -5,7 +5,7 @@ import time
 
 
 def i2osp(x: int, length: int) -> bytes:
-    """Integer-to-Octet-String (RFC 8017 §4.1): số nguyên không âm -> chuỗi byte big-endian dài đúng `length`.
+    """Integer-to-Octet-String (RFC 8017 §4.1): số nguyên không âm -> chuỗi byte big-endian dài đúng độ dài bằng length.
 
     Ném ValueError nếu x < 0 hoặc x >= 256^length ("integer too large").
     """
