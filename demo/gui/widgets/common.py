@@ -62,6 +62,7 @@ def button(text: str, slot) -> QPushButton:
     b = QPushButton(amp(text))
     b.setCursor(Qt.CursorShape.PointingHandCursor)
     b.clicked.connect(lambda _=False: slot())
+    b.setMinimumWidth(b.sizeHint().width() + 12)     # nút luôn đủ rộng để hiện hết chữ
     return b
 
 

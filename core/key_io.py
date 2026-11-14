@@ -6,8 +6,8 @@ from pathlib import Path
 from core.rsa_keygen import RSAPrivateKey, RSAPublicKey
 from core.signature import SignatureBundle
 
-SECRET_KEY_FIELDS = ("n", "e", "d", "p", "q")
-DEMO_WARNING = "Khoá riêng được lưu dưới dạng chữ thường. Ai có tệp này đều ký thay được. Chỉ dùng để học tập"
+PRIVATE_FIELDS = ("n", "e", "d", "p", "q")
+DEMO_WARNING = "Khóa mặc định cho bài tập — KHÔNG dùng thật, tệp không được mã hoá"
 
 
 def _hex(x: int) -> str:
@@ -36,14 +36,14 @@ def private_key_to_dict(priv: RSAPrivateKey, owner: str = "") -> dict:
     d = {"kty": "RSA", "type": "private", "warning": DEMO_WARNING}
     if owner:
         d["owner"] = owner
-    d.update({f: _hex(getattr(priv, f)) for f in SECRET_KEY_FIELDS})
+    d.update({f: _hex(getattr(priv, f)) for f in PRIVATE_FIELDS})
     return d
 
 
 def private_key_from_dict(d: dict) -> RSAPrivateKey:
     if d.get("type") != "private":
         raise ValueError("Tệp không chứa khoá riêng")
-    priv = RSAPrivateKey(**{f: int(d[f], 16) for f in SECRET_KEY_FIELDS})
+    priv = RSAPrivateKey(**{f: int(d[f], 16) for f in PRIVATE_FIELDS})
     if priv.p * priv.q != priv.n:
         raise ValueError("Khoá hỏng: p·q ≠ n")
     return priv

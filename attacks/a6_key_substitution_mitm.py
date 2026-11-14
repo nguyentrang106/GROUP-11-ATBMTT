@@ -16,40 +16,40 @@ def run(logger: StepLogger | None = None, defended: bool = False, bits: int = 10
     log.head(f"TẤN CÔNG A6: THAY KHOÁ CÔNG KHAI ({'CÓ' if defended else 'KHÔNG'} PKI)")
     trang_pub, _ = generate_keypair(bits)
     phuong_pub, phuong_priv = generate_keypair(bits)
-    fake = "Trang: Thủy chuyển ngay 200 triệu vào tài khoản 0123 giúp tôi.".encode("utf-8")
+    fake = "Sender: Receiver chuyển ngay 200 triệu vào tài khoản 0123 giúp tôi.".encode("utf-8")
     fake_sig = sign(fake, phuong_priv)
-    log.note("[1] Phương soạn lệnh giả và ký bằng khoá riêng của Phương", fake.decode())
+    log.note("[1] Attacker soạn lệnh giả và ký bằng khoá riêng của Attacker", fake.decode())
 
     if not defended:
         received = phuong_pub
-        log.note("[2] Trang gửi khoá công khai cho Thủy; Phương chặn và thay bằng khoá của Phương",
-                 f"Thủy nhận n = 0x{format(received.n, 'x')[:24]}… — không có cách nào biết đây không phải của Trang")
+        log.note("[2] Sender gửi khoá công khai cho Receiver; Attacker chặn và thay bằng khoá của Attacker",
+                 f"Receiver nhận n = 0x{format(received.n, 'x')[:24]}… — không có cách nào biết đây không phải của Sender")
         res = verify_detailed(fake, fake_sig, received)
         success = res.valid
-        log.log("[3] Thủy kiểm tra lệnh giả bằng 'khoá của Trang'", None,
-                "HỢP LỆ: Thủy tin Trang ra lệnh" if success else res.reason, level="bad" if success else "ok")
+        log.log("[3] Receiver kiểm tra lệnh giả bằng 'khoá của Sender'", None,
+                "HỢP LỆ: Receiver tin Sender ra lệnh" if success else res.reason, level="bad" if success else "ok")
         details = {"defended": False}
     else:
         root = CertificateAuthority.create("Root CA ATBMTT", bits)
         root.self_signed_root()
-        trang_cert = root.issue("Trang", trang_pub)
-        log.note("[2] Thủy chỉ tin Root CA ATBMTT; khoá của Trang đến kèm chứng chỉ do Root CA ký")
+        trang_cert = root.issue("Sender", trang_pub)
+        log.note("[2] Receiver chỉ tin Root CA ATBMTT; khoá của Sender đến kèm chứng chỉ do Root CA ký")
         swapped = Certificate.from_dict({**trang_cert.to_dict(),
                                          "public_key": {"n": format(phuong_pub.n, "x"), "e": format(phuong_pub.e, "x")}})
         r_swap = verify_chain(swapped, [], [root.certificate])
-        log.log("[3] Phương sửa khoá công khai bên trong chứng chỉ của Trang", None, r_swap.reason,
+        log.log("[3] Attacker sửa khoá công khai bên trong chứng chỉ của Sender", None, r_swap.reason,
                 level="bad" if r_swap.valid else "ok")
         evil = CertificateAuthority.create("Root CA ATBMTT", bits)
         evil.self_signed_root()
-        evil_cert = evil.issue("Trang", phuong_pub)
+        evil_cert = evil.issue("Sender", phuong_pub)
         r_evil = verify_chain(evil_cert, [evil.certificate], [root.certificate])
-        log.log("[4] Phương lập CA giả cùng tên, tự cấp chứng chỉ 'Trang'", None, r_evil.reason,
+        log.log("[4] Attacker lập CA giả cùng tên, tự cấp chứng chỉ 'Sender'", None, r_evil.reason,
                 level="bad" if r_evil.valid else "ok")
         success = (r_swap.valid and verify_detailed(fake, fake_sig, swapped.public_key).valid) or \
                   (r_evil.valid and verify_detailed(fake, fake_sig, evil_cert.public_key).valid)
         details = {"defended": True, "swapped_cert": r_swap.valid, "fake_ca": r_evil.valid}
 
-    summary = ("Thủy chấp nhận chữ ký của Phương là của Trang." if success else
+    summary = ("Receiver chấp nhận chữ ký của Attacker là của Sender." if success else
                "Thất bại: chứng chỉ do CA ký phát hiện khoá bị thay.")
     (log.bad if success else log.ok)("[KẾT LUẬN] " + summary + " Phòng chống: chứng chỉ CA (PKI).")
     return AttackResult(NAME, success, summary, details)

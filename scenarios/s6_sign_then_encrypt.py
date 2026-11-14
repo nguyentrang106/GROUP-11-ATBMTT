@@ -81,24 +81,24 @@ def run(logger: StepLogger | None = None, bits: int = 2048) -> ScenarioResult:
     linh_enc_pub, linh_enc_priv = generate_keypair(bits)
     phuong_enc_pub, phuong_enc_priv = generate_keypair(bits)
     sign_keys = {"trang": trang_sign_pub}
-    log.note("[1] Trang (Sender), Thủy (Receiver), Phương (Attacker) và Linh (Third Party) có khoá riêng", "trang_sign, thuy_enc, linh_enc, phuong_enc")
+    log.note("[1] Sender, Receiver, Attacker và Third Party có khoá riêng", "trang_sign, thuy_enc, linh_enc, phuong_enc")
 
-    message = "Thủy thân mến, mật khẩu kho dữ liệu dự án là: X7#kq-2026. Trang.".encode("utf-8")
+    message = "Receiver thân mến, mật khẩu kho dữ liệu dự án là: X7#kq-2026. Sender.".encode("utf-8")
     env = seal(message, "trang", trang_sign_priv, "thuy", thuy_enc_pub)
-    log.log("[2] Trang (Sender) ký rồi mã hoá gửi Thủy (Receiver)", 's = Sign_d_A(H(to || t || M)); C₂ = AES-GCM_K(M || s); C₁ = RSA-Enc_e_B(K)',
+    log.log("[2] Sender ký rồi mã hoá gửi Receiver", 's = Sign_d_A(H(to || t || M)); C₂ = AES-GCM_K(M || s); C₁ = RSA-Enc_e_B(K)',
             f"C1 = {env['C1'][:48]}…\nC2 = {env['C2'][:48]}… ({len(env['C2']) // 2} byte)")
-    log.log("    Phương (Attacker) nghe lén chỉ thấy C1, nonce, C2", None,
+    log.log("    Attacker nghe lén chỉ thấy C1, nonce, C2", None,
             f"Bản rõ có xuất hiện trong gói tin? {message.hex() in json.dumps(env)}", level="ok")
 
     try:
         opened = open_envelope(env, "thuy", thuy_enc_priv, sign_keys)
         thuy_ok = opened["message"] == message
-        log.log("[3] Thủy (Receiver) giải mã K, C2 và kiểm tra chữ ký của Trang", None,
+        log.log("[3] Receiver giải mã K, C2 và kiểm tra chữ ký của Sender", None,
                 f"Người gửi: {opened['from']}, gửi cho: {opened['to']}, lúc {fmt_time(opened['t'])}\n"
                 f"M = {opened['message'].decode()}", level="ok" if thuy_ok else "bad")
     except EnvelopeError as err:
         thuy_ok = False
-        log.bad("[3] Thủy không mở được phong bì", str(err))
+        log.bad("[3] Receiver không mở được phong bì", str(err))
 
     def attempt(title: str, fn) -> bool:
         try:
@@ -109,20 +109,20 @@ def run(logger: StepLogger | None = None, bits: int = 2048) -> ScenarioResult:
             log.ok(title, f"Bị chặn: {err}")
             return False
 
-    phuong_ok = attempt("[4] Phương (Attacker) mở phong bì bằng khoá riêng của mình",
+    phuong_ok = attempt("[4] Attacker mở phong bì bằng khoá riêng của mình",
                          lambda: open_envelope(env, "phuong", phuong_enc_priv, sign_keys))
     bad = dict(env)
     c2 = bytearray(from_hex(env["C2"]))
     c2[len(c2) // 2] ^= 0x01
     bad["C2"] = c2.hex()
-    tamper_ok = attempt("[5] Phương (Attacker) lật 1 bit trong C2 rồi chuyển cho Thủy",
+    tamper_ok = attempt("[5] Attacker lật 1 bit trong C2 rồi chuyển cho Receiver",
                         lambda: open_envelope(bad, "thuy", thuy_enc_priv, sign_keys))
     forwarded = encrypt_inner(decrypt_inner(env, thuy_enc_priv), linh_enc_pub)
-    forward_ok = attempt("[6] Thủy chuyển tiếp (M, s) cho Linh (Third Party)",
+    forward_ok = attempt("[6] Receiver chuyển tiếp (M, s) cho Third Party",
                          lambda: open_envelope(forwarded, "linh", linh_enc_priv, sign_keys))
 
     valid = thuy_ok and not phuong_ok and not tamper_ok and not forward_ok
-    summary = ("Phong bì số cho cả bảo mật (chỉ Thủy đọc được) lẫn chứng thực; ký kèm người nhận chặn chuyển tiếp lén."
+    summary = ("Phong bì số cho cả bảo mật (chỉ Receiver đọc được) lẫn chứng thực; ký kèm người nhận chặn chuyển tiếp lén."
                if valid else "Kịch bản S6 không đạt.")
     (log.ok if valid else log.bad)("[KẾT LUẬN] " + summary)
     return ScenarioResult(NAME, valid, summary, {

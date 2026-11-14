@@ -3,9 +3,12 @@ from __future__ import annotations
 from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QHeaderView, QLabel, QSpinBox, QTableWidget,
                                QTableWidgetItem, QVBoxLayout, QWidget)
 
-from demo.benchmark import DATA_SIZES, KEY_SIZES, KINDS, BenchRow, fmt_size, run_benchmark
+from demo.benchmark import DATA_SIZES, KINDS, BenchRow, fmt_size, run_benchmark
 from demo.gui.widgets import common
 from demo.gui.widgets.common import button, glass, hbox
+
+
+GUI_KEY_SIZES = (1024, 2048, 3072)   # đồng bộ với các tab khác
 
 
 class BenchmarkTab(QWidget):
@@ -15,9 +18,9 @@ class BenchmarkTab(QWidget):
         self.rows: list[BenchRow] = []
         lay = QVBoxLayout(self)
 
-        self.key_boxes = {b: QCheckBox(f"{b} bit") for b in KEY_SIZES}
+        self.key_boxes = {b: QCheckBox(f"{b} bit") for b in GUI_KEY_SIZES}
         self.data_boxes = {s: QCheckBox(fmt_size(s)) for s in DATA_SIZES}
-        for b in (512, 1024, 2048):
+        for b in GUI_KEY_SIZES:
             self.key_boxes[b].setChecked(True)
         for s in DATA_SIZES[:4]:
             self.data_boxes[s].setChecked(True)

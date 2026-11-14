@@ -27,6 +27,8 @@ class ResultBadge(QWidget):
         self.title.setStyleSheet(f"color: {color}; font-size: 18px; font-weight: 700;")
         self.reason.setText(participant_text(reason))
         self.reason.setStyleSheet(f"color: {color};")
+        self.reason.setVisible(bool(reason))
+        self.setVisible(bool(title or reason))    # chưa có kết quả thì ẩn, không để lại khoảng trống
 
     def set_result(self, ok: bool, reason: str = "", ok_text: str = "HỢP LỆ",
                    bad_text: str = "KHÔNG HỢP LỆ") -> None:

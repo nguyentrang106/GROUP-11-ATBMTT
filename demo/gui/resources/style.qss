@@ -418,3 +418,25 @@ QProgressBar::chunk {
     background: #FFD6EB;
     border-radius: 4px;
 }
+
+/* ---------- TAB 4: nhóm Chống chối bỏ (vàng); nhóm Chứng thực dùng màu hồng mặc định ---------- */
+
+QPushButton[variant="nonrep"] {
+    background: #FFE9A8;
+    color: #5A4300;
+    border: 1px solid rgba(184, 134, 11, 110);
+}
+
+QPushButton[variant="nonrep"]:hover {
+    background: #F7D46A;
+}
+
+QPushButton[variant="nonrep"]:pressed {
+    background: #EFC24A;
+}
+
+QPushButton[variant="nonrep"]:disabled {
+    background: rgba(255, 233, 168, 110);
+    color: rgba(90, 67, 0, 120);
+    border-color: transparent;
+}

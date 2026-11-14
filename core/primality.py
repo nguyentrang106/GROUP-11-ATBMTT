@@ -58,7 +58,7 @@ def is_probable_prime(n: int, rounds: int = 40) -> bool:
 
 
 def generate_prime(bits: int, top_bits: int = 1) -> int:
-    # Sinh số nguyên tố ngẫu nhiên đúng bits.
+    # Sinh số nguyên tố ngẫu nhiên đúng `bits` bit.
 
     if bits < 3:
         raise ValueError("Số bit phải >= 3")

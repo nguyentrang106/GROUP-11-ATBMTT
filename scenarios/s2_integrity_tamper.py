@@ -30,15 +30,15 @@ def run(logger: StepLogger | None = None, bits: int = 2048) -> ScenarioResult:
     pub, priv = generate_keypair(bits)
     sig = sign(original, priv)
     h1, h2 = sha256(original), sha256(tampered)
-    log.log("[2] Trang ký contract.txt", 'S = RSASP1(d, Encode(SHA256(M)))',
+    log.log("[2] Sender ký contract.txt", 'S = RSASP1(d, Encode(SHA256(M)))',
             f"SHA256(M)  = {h1.hex()}\nS = {sig.hex()[:64]}…")
     log.log("    Giá trị băm của bản bị sửa", 'SHA256(M′)', f"SHA256(M') = {h2.hex()}\n"
             f"Khác {_bit_diff(h1, h2)}/256 bit so với SHA256(M) (hiệu ứng thác lũ)")
 
     r_ok = verify_detailed(original, sig, pub)
     r_tamper = verify_detailed(tampered, sig, pub)
-    log.log("[3] Thủy kiểm tra bản gốc", None, r_ok.reason, level="ok" if r_ok.valid else "bad")
-    log.log("[4] Thủy kiểm tra bản bị sửa 1 byte với cùng chữ ký", None, r_tamper.reason,
+    log.log("[3] Receiver kiểm tra bản gốc", None, r_ok.reason, level="ok" if r_ok.valid else "bad")
+    log.log("[4] Receiver kiểm tra bản bị sửa 1 byte với cùng chữ ký", None, r_tamper.reason,
             level="bad" if r_tamper.valid else "ok")
 
     flipped_msg = bytearray(original)

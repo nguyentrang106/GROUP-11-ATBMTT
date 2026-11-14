@@ -49,19 +49,19 @@ def run(logger: StepLogger | None = None, bits: int = 2048) -> ScenarioResult:
     tsa = TimestampAuthority.create("TSA ATBMTT", bits)
     tsa.certificate = root.issue(tsa.name, tsa.public_key)
     trang_pub, trang_priv = generate_keypair(bits)
-    trang_cert = root.issue("Trang", trang_pub)
-    log.note("[1] Hạ tầng: Root CA cấp chứng chỉ cho Trang và cho TSA", trang_cert.describe())
+    trang_cert = root.issue("Sender", trang_pub)
+    log.note("[1] Hạ tầng: Root CA cấp chứng chỉ cho Sender và cho TSA", trang_cert.describe())
 
     contract = sample_bytes("messages/contract.txt", FALLBACK_CONTRACT)
     sig = sign(contract, trang_priv)
     token = tsa.stamp(sig)
     bundle = SignatureBundle("pkcs1v15", "contract.txt", "", sig.hex(), trang_cert.to_dict(), token.to_dict())
-    log.log("[2] Trang ký hợp đồng, TSA đóng dấu thời gian lên chữ ký",
+    log.log("[2] Sender ký hợp đồng, TSA đóng dấu thời gian lên chữ ký",
             'token = Sign_d_TSA(SHA256(S) || t)',
             f"S = {sig.hex()[:48]}…\nt = {fmt_time(token.time)}")
-    log.note("    Thủy nhận gói (hợp đồng, S, chứng chỉ Trang, token) và lưu lại làm bằng chứng")
+    log.note("    Receiver nhận gói (hợp đồng, S, chứng chỉ Sender, token) và lưu lại làm bằng chứng")
 
-    log.head("[3] Linh (Third Party) làm trọng tài: Trang chối 'Tôi chưa từng ký hợp đồng này' → trọng tài kiểm tra")
+    log.head("[3] Third Party làm trọng tài: Sender chối 'Tôi chưa từng ký hợp đồng này' → trọng tài kiểm tra")
     crl = root.publish_crl()
     verdict = arbitrate(contract, bundle, [root.certificate], crl, tsa.public_key)
     tsa_chain = verify_chain(tsa.certificate, [], [root.certificate], crl)
@@ -72,7 +72,7 @@ def run(logger: StepLogger | None = None, bits: int = 2048) -> ScenarioResult:
     if edited == contract:
         edited = contract + b" "
     framed = arbitrate(edited, bundle, [root.certificate], crl, tsa.public_key)
-    log.log("[4] Thủy sửa giá trị hợp đồng rồi dùng lại chữ ký của Trang", None, framed.reason,
+    log.log("[4] Receiver sửa giá trị hợp đồng rồi dùng lại chữ ký của Sender", None, framed.reason,
             level="bad" if framed.valid else "ok")
 
     thuy_pub, thuy_priv = generate_keypair(bits)
@@ -80,7 +80,7 @@ def run(logger: StepLogger | None = None, bits: int = 2048) -> ScenarioResult:
     thuy_bundle = SignatureBundle("pkcs1v15", "contract.txt", "", thuy_sig.hex(), trang_cert.to_dict(),
                                  tsa.stamp(thuy_sig).to_dict())
     framed2 = arbitrate(contract, thuy_bundle, [root.certificate], crl, tsa.public_key)
-    log.log("[5] Thủy tự ký bằng khoá của Thủy rồi gắn chứng chỉ của Trang", None, framed2.reason,
+    log.log("[5] Receiver tự ký bằng khoá của Receiver rồi gắn chứng chỉ của Sender", None, framed2.reason,
             level="bad" if framed2.valid else "ok")
 
     backdated = SignatureBundle(**{**bundle.__dict__, "timestamp_token": {**token.to_dict(), "time": token.time - 86400 * 400}})
@@ -88,8 +88,8 @@ def run(logger: StepLogger | None = None, bits: int = 2048) -> ScenarioResult:
     log.log("[6] Sửa thời điểm trong dấu thời gian", None, r_back.reason, level="bad" if r_back.valid else "ok")
 
     valid = verdict.valid and tsa_chain.valid and not framed.valid and not framed2.valid and not r_back.valid
-    summary = ("Chứng chỉ CA + chữ ký + dấu thời gian ràng buộc Trang với hợp đồng: Trang không chối được, "
-               "Thủy cũng không vu cho Trang được." if valid else "Kịch bản S3 không đạt.")
+    summary = ("Chứng chỉ CA + chữ ký + dấu thời gian ràng buộc Sender với hợp đồng: Sender không chối được, "
+               "Receiver cũng không vu cho Sender được." if valid else "Kịch bản S3 không đạt.")
     (log.ok if valid else log.bad)("[KẾT LUẬN] " + summary)
     return ScenarioResult(NAME, valid, summary, {
         "verdict": verdict.reason, "thuy_edits_contract": framed.valid, "thuy_own_key": framed2.valid,

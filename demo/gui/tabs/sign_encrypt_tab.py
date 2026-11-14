@@ -5,7 +5,7 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import QComboBox, QFileDialog, QGroupBox, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QComboBox, QFileDialog, QGridLayout, QGroupBox, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from core import key_io
 from core.encryption import ALGORITHM, MAX_ENVELOPE_FILE_BYTES, MAX_MESSAGE_BYTES, seal, unseal
@@ -38,14 +38,14 @@ class SignEncryptTab(QWidget):
         self.setAcceptDrops(True)
         self.receiver_pub: RSAPublicKey | None = None
         self.receiver_priv: RSAPrivateKey | None = None
-        self.sent: bytes | None = None                 # x Trang gửi, để so khớp sau khi Thủy giải mã
+        self.sent: bytes | None = None                 # x Sender gửi, để so khớp sau khi Receiver giải mã
         self.envelope: dict | None = None              # z đang trên đường truyền
         self.received: tuple[bytes, SignatureBundle] | None = None
         lay = QHBoxLayout(self)
 
-        left = QGroupBox("BÊN GỬI: Trang ( Sender ) - ký bằng a_A, mã hoá bằng e_B của Thủy ( Receiver )")
+        left = QGroupBox("BÊN GỬI: Sender - ký bằng a_A, mã hoá bằng e_B của Receiver")
         ll = QVBoxLayout(left)
-        self.signer_info = QLabel("Khoá ký a_A: dùng khoá của Trang ( Sender ) ở tab Ký & Kiểm tra")
+        self.signer_info = QLabel("Khoá ký a_A: dùng khoá của Sender ở tab Ký & Kiểm tra")
         self.signer_info.setWordWrap(True)
         ll.addWidget(self.signer_info)
         self.src = DataSource(f"Thông điệp x (tối đa {MAX_MESSAGE_BYTES // 1024} KiB)", lines=4)
@@ -59,31 +59,49 @@ class SignEncryptTab(QWidget):
         self.scheme.addItems(tuple(SCHEMES))
         self.time_label = QLabel("")
         ll.addLayout(hbox(QLabel("Lược đồ ký:"), self.scheme, button("Ký rồi mã hoá", self.sign_and_seal),
-                          self.time_label, None, button("Lưu z…", self.save_encrypted)))
-        self.sig_view = HexView("1. y = sig_A(h(x)) — Trang ( Sender ) dùng khoá bí mật a_A", 3)
-        self.z_view = HexView("2. z = e_B(x, y) — Trang ( Sender ) dùng khoá công khai e_B của Thủy ( Receiver )", 5)
+                          self.time_label, None, button("Lưu bản mã", self.save_encrypted)))
+        self.sig_view = HexView("1. y = sig_A(h(x)) - Sender dùng khoá bí mật a_A", 3)
+        self.z_view = HexView("2. z = e_B(x, y) - Sender dùng khoá công khai e_B của Receiver", 5)
         ll.addWidget(self.sig_view, 1)
         ll.addWidget(self.z_view, 2)
         note = QLabel(NOTE)
         note.setWordWrap(True)
         ll.addWidget(note)
 
-        right = QGroupBox("BÊN NHẬN: Thủy ( Receiver ) - giải mã bằng d_B, kiểm tra bằng b_A của Trang ( Sender )")
+        right = QGroupBox("BÊN NHẬN: Receiver - giải mã bằng d_B, kiểm tra bằng b_A của Sender")
         rl = QVBoxLayout(right)
-        self.receiver_key_info = QLabel("Khoá mã hoá của Thủy ( Receiver ): chưa có")
+        self.receiver_key_info = QLabel("Khoá mã hoá của Receiver: chưa có")
         self.receiver_key_info.setWordWrap(True)
         rl.addWidget(self.receiver_key_info)
-        rl.addLayout(hbox(button("Sinh khoá Thủy ( Receiver )", self.generate_receiver_key),
-                          button("Mở khoá Thủy ( Receiver )…", self.open_receiver_key),
-                          button("Lưu khoá Thủy ( Receiver )…", self.save_receiver_key), None))
-        rl.addLayout(hbox(button("Mở z…", self.open_encrypted), button("Giải mã z", self.decrypt_received),
-                          button("Kiểm tra chữ ký", self.verify), None))
-        rl.addLayout(hbox(button("Phương ( Attacker ) sửa 1 bit z", self.tamper_z),
-                          button("Thủy ( Receiver ) chuyển tiếp z cho người khác (A8)", self.show_forwarding), None))
-        self.x_view = HexView("3. (x, y) = d_B(z) — thông điệp Thủy ( Receiver ) giải mã được", 3)
+        self.receiver_bits = QComboBox()
+        self.receiver_bits.addItems(("1024", "2048", "3072"))
+        self.receiver_bits.setCurrentText("2048")
+        rl.addLayout(hbox(QLabel("Độ dài khoá Receiver:"), self.receiver_bits, None))
+        # Lưới nút 3 cột đều nhau: hàng 1 = khoá, hàng 2 = nhận bản mã, hàng 3 = thử tấn công
+        grid = QGridLayout()
+        grid.setSpacing(8)
+        rows = [
+            [button("Sinh khoá Receiver", self.generate_receiver_key), button("Mở khoá Receiver", self.open_receiver_key),
+             button("Lưu khoá Receiver", self.save_receiver_key)],
+            [button("Mở bản mã", self.open_encrypted), button("Giải mã bản mã", self.decrypt_received),
+             button("Kiểm tra chữ ký", self.verify)],
+        ]
+        for r, widgets in enumerate(rows):
+            for c, w in enumerate(widgets):
+                grid.addWidget(w, r, c)
+        attack = QHBoxLayout()
+        attack.setSpacing(8)
+        attack.addWidget(button("Attacker sửa 1 bit bản mã", self.tamper_z), 1)
+        attack.addWidget(button("Chuyển tiếp cho người khác (A8)", self.show_forwarding), 1)
+        grid.addLayout(attack, 2, 0, 1, 3)
+        for c in range(3):
+            grid.setColumnStretch(c, 1)
+        rl.addLayout(grid)
+        self.x_view = HexView("3. (x, y) = d_B(z) - thông điệp Receiver giải mã được", 3)
         rl.addWidget(self.x_view, 1)
         self.match_label = QLabel("")
         self.match_label.setWordWrap(True)
+        self.match_label.setVisible(False)          # chỉ hiện khi đã giải mã, tránh khoảng trống
         rl.addWidget(self.match_label)
         self.recv_preview = QLabel()
         self.recv_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -113,36 +131,36 @@ class SignEncryptTab(QWidget):
         self.receiver_priv = key if isinstance(key, RSAPrivateKey) else None
         self.receiver_pub = key.public_key if isinstance(key, RSAPrivateKey) else key
         kind = "có khoá bí mật d_B để giải mã" if self.receiver_priv else "chỉ có e_B, chưa giải mã được"
-        self.receiver_key_info.setText(f"Khoá Thủy ( Receiver ) (e_B, d_B): {origin}, {key.bits} bit ({kind})")
+        self.receiver_key_info.setText(f"Khoá Receiver (e_B, d_B): {origin}, {key.bits} bit ({kind})")
 
     def generate_receiver_key(self) -> None:
-        bits = self.receiver_pub.bits if self.receiver_pub is not None else 2048
+        bits = int(self.receiver_bits.currentText())
         self.app.run(lambda: generate_keypair(bits),
                      lambda kp: self._set_receiver_key(kp[1], "vừa sinh"),
-                     status="Đang sinh khoá mã hoá của Thủy ( Receiver )…", owner=self)
+                     status=f"Đang sinh khoá mã hoá {bits} bit của Receiver…", owner=self)
 
     def open_receiver_key(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(self, "Mở khoá mã hoá/giải mã của Thủy ( Receiver )",
+        path, _ = QFileDialog.getOpenFileName(self, "Mở khoá mã hoá/giải mã của Receiver",
                                              str(SAMPLE / "keys"), "Khoá (*.json)")
         if path:
             try:
                 self._set_receiver_key(key_io.load_key(Path(path)), Path(path).name)
             except (ValueError, KeyError, OSError) as err:
-                common.show_error(self, "Không mở được khoá Thủy ( Receiver )", str(err))
+                common.show_error(self, "Không mở được khoá Receiver", str(err))
 
     def save_receiver_key(self) -> None:
         if self.receiver_pub is None:
-            common.show_info(self, "Chưa có khoá Thủy ( Receiver )", "Sinh hoặc mở khoá Thủy ( Receiver ) trước.")
+            common.show_info(self, "Chưa có khoá Receiver", "Sinh hoặc mở khoá Receiver trước.")
             return
-        path, _ = QFileDialog.getSaveFileName(self, "Lưu khoá Thủy ( Receiver )", "thuy_enc.json", "Khoá (*.json)")
+        path, _ = QFileDialog.getSaveFileName(self, "Lưu khoá Receiver", "thuy_enc.json", "Khoá (*.json)")
         if path:
             try:
                 if self.receiver_priv is not None:
-                    key_io.save_private_key(self.receiver_priv, Path(path), "Thủy")
+                    key_io.save_private_key(self.receiver_priv, Path(path), "Receiver")
                 else:
                     key_io.save_public_key(self.receiver_pub, Path(path))
             except OSError as err:
-                common.show_error(self, "Không lưu được khoá Thủy ( Receiver )", str(err))
+                common.show_error(self, "Không lưu được khoá Receiver", str(err))
 
     # ---- bên gửi ----------------------------------------------------------------------------------------
     def _preview_source(self) -> None:
@@ -179,10 +197,10 @@ class SignEncryptTab(QWidget):
     def sign_and_seal(self) -> None:
         _, priv = self._signer()
         if priv is None:
-            common.show_warning(self, "Thiếu khoá Trang ( Sender )", "Sinh hoặc mở khoá bí mật của Trang ( Sender ) ở tab Ký & Kiểm tra.")
+            common.show_warning(self, "Thiếu khoá Sender", "Sinh hoặc mở khoá bí mật của Sender ở tab Ký & Kiểm tra.")
             return
         if self.receiver_pub is None:
-            common.show_warning(self, "Thiếu khoá Thủy ( Receiver )", "Mở hoặc sinh khoá mã hoá của Thủy ( Receiver ) trước.")
+            common.show_warning(self, "Thiếu khoá Receiver", "Mở hoặc sinh khoá mã hoá của Receiver trước.")
             return
         message = self._read_message()
         if message is None:
@@ -204,18 +222,18 @@ class SignEncryptTab(QWidget):
             self.sig_view.set_hex(sig)
             self.z_view.set_hex("".join(envelope["blocks"]))
             self.time_label.setText(f"{elapsed * 1000:.1f} ms")
-            self.signer_info.setText(f"Khoá ký a_A của Trang ( Sender ): n {priv.n.bit_length()} bit "
+            self.signer_info.setText(f"Khoá ký a_A của Sender: n {priv.n.bit_length()} bit "
                                      f"(lấy từ tab Ký & Kiểm tra)")
             self._clear_receiver()
-            self.badge.set_info("Đã gửi z cho Thủy ( Receiver )", "Bấm Giải mã z, rồi Kiểm tra chữ ký")
-            self.detail.append(f"=== Trang ( Sender ) ký {name} ({self.scheme.currentText()}) rồi mã hoá bằng e_B: "
+            self.badge.set_info("Đã gửi bản mã cho Receiver", "Bấm Giải mã bản mã, rồi Kiểm tra chữ ký")
+            self.detail.append(f"=== Sender ký {name} ({self.scheme.currentText()}) rồi mã hoá bằng e_B: "
                                f"{len(envelope['blocks'])} khối RSA-OAEP, n_B {receiver_pub.n.bit_length()} bit ===\n")
 
         self.app.run(job, done, status="Đang ký rồi mã hoá…", owner=self)
 
     def save_encrypted(self) -> None:
         if self.envelope is None:
-            common.show_info(self, "Chưa có bản mã", "Bấm Ký rồi mã hoá, hoặc mở một tệp z.")
+            common.show_info(self, "Chưa có bản mã", "Bấm Ký rồi mã hoá, hoặc mở một tệp bản mã.")
             return
         path, _ = QFileDialog.getSaveFileName(self, "Lưu bản mã z", "message.enc.json", "Bản mã (*.enc.json)")
         if path:
@@ -228,15 +246,15 @@ class SignEncryptTab(QWidget):
     # ---- đường truyền -----------------------------------------------------------------------------------
     def tamper_z(self) -> None:
         if self.envelope is None:
-            common.show_info(self, "Chưa có z", "Bấm Ký rồi mã hoá trước.")
+            common.show_info(self, "Chưa có bản mã", "Bấm Ký rồi mã hoá trước.")
             return
         block = bytearray.fromhex(self.envelope["blocks"][0])
         block[-1] ^= 0x01
         self.envelope = {**self.envelope, "blocks": [block.hex(), *self.envelope["blocks"][1:]]}
         self.z_view.set_hex("".join(self.envelope["blocks"]))
         self._clear_receiver()
-        self.badge.set_info("Phương ( Attacker ) đã sửa z", "Bấm Giải mã z để xem Thủy ( Receiver ) phát hiện")
-        self.detail.append("Phương ( Attacker ) lật 1 bit cuối của khối z đầu tiên.\n", "bad")
+        self.badge.set_info("Attacker đã sửa bản mã", "Bấm Giải mã bản mã để xem Receiver phát hiện")
+        self.detail.append("Attacker lật 1 bit cuối của khối đầu tiên của bản mã.\n", "bad")
 
     def show_forwarding(self) -> None:
         # Chuyển tiếp lén: tấn công dành riêng cho ký rồi mã hoá, đã có ở tab Phân tích an toàn
@@ -250,6 +268,7 @@ class SignEncryptTab(QWidget):
         self.received = None
         self.x_view.clear()
         self.match_label.clear()
+        self.match_label.setVisible(False)
         self.recv_preview.setVisible(False)
 
     def open_encrypted(self) -> None:
@@ -274,14 +293,14 @@ class SignEncryptTab(QWidget):
         self.envelope, self.sent = envelope, None
         self.z_view.set_hex("".join(envelope["blocks"]))
         self._clear_receiver()
-        self.badge.set_info("Đã nhận z", "Bấm Giải mã z")
+        self.badge.set_info("Đã nhận bản mã", "Bấm Giải mã bản mã")
 
     def decrypt_received(self) -> None:
         if self.envelope is None:
-            common.show_info(self, "Chưa có bản mã cần giải mã", "Bấm Ký rồi mã hoá hoặc mở tệp z.")
+            common.show_info(self, "Chưa có bản mã cần giải mã", "Bấm Ký rồi mã hoá hoặc mở tệp bản mã.")
             return
         if self.receiver_priv is None:
-            common.show_warning(self, "Thiếu khoá bí mật của Thủy ( Receiver )", "Mở đúng khoá bí mật d_B của Thủy ( Receiver ) để giải mã z.")
+            common.show_warning(self, "Thiếu khoá bí mật của Receiver", "Mở đúng khoá bí mật d_B của Receiver để giải mã bản mã.")
             return
         envelope, priv = self.envelope, self.receiver_priv
 
@@ -296,28 +315,29 @@ class SignEncryptTab(QWidget):
             self._clear_receiver()
             if error is not None:
                 self.badge.set_result(False, error, bad_text="GIẢI MÃ THẤT BẠI")
-                self.detail.append(f"Giải mã z bằng d_B thất bại: {error}\n", "bad")
+                self.detail.append(f"Giải mã bản mã bằng d_B thất bại: {error}\n", "bad")
                 return
             message, bundle = opened
             self.received = (message, bundle)
             self.x_view.set_hex(message.decode("utf-8") if _is_text(message) else message.hex())
             if self.sent is not None:
                 same = message == self.sent
-                self.match_label.setText(f"So với x Trang ( Sender ) gửi: {'khớp từng byte' if same else 'KHÁC'} "
+                self.match_label.setText(f"So với x Sender gửi: {'khớp từng byte' if same else 'KHÁC'} "
                                          f"({len(message):,} byte)")
+                self.match_label.setVisible(True)
             self._set_preview(self.recv_preview, _pixmap(message))
-            self.badge.set_info("Đã giải mã z", "Bấm Kiểm tra chữ ký bằng khoá công khai b_A của Trang ( Sender )")
-            self.detail.append("Giải mã z bằng d_B của Thủy ( Receiver ): đã khôi phục (x, y).\n", "ok")
+            self.badge.set_info("Đã giải mã bản mã", "Bấm Kiểm tra chữ ký bằng khoá công khai b_A của Sender")
+            self.detail.append("Giải mã bản mã bằng d_B của Receiver: đã khôi phục (x, y).\n", "ok")
 
-        self.app.run(job, done, status="Đang giải mã z…", owner=self)
+        self.app.run(job, done, status="Đang giải mã bản mã…", owner=self)
 
     def verify(self) -> None:
         if self.received is None:
-            common.show_warning(self, "Cần giải mã z", "Thủy ( Receiver ) phải giải mã z bằng d_B trước, rồi mới kiểm tra chữ ký.")
+            common.show_warning(self, "Cần giải mã bản mã", "Receiver phải giải mã bản mã bằng d_B trước, rồi mới kiểm tra chữ ký.")
             return
         pub, _ = self._signer()
         if pub is None:
-            common.show_warning(self, "Thiếu khoá Trang ( Sender )", "Cần khoá công khai b_A của Trang ( Sender ) ở tab Ký & Kiểm tra.")
+            common.show_warning(self, "Thiếu khoá Sender", "Cần khoá công khai b_A của Sender ở tab Ký & Kiểm tra.")
             return
         message, bundle = self.received
         log = StepLogger()
@@ -325,7 +345,7 @@ class SignEncryptTab(QWidget):
         log.log("Băm thông điệp giải mã được", "h(x) = SHA-256(x)", h.hex())
         res = verify_hash(h, bundle.signature, pub, bundle.scheme, log)
         self.badge.set_result(res.valid, res.reason)
-        self.detail.append(f"\n--- ver_A(x, y) bằng khoá công khai b_A của Trang ( Sender ) (n {pub.n.bit_length()} bit) ---\n",
+        self.detail.append(f"\n--- ver_A(x, y) bằng khoá công khai b_A của Sender (n {pub.n.bit_length()} bit) ---\n",
                            "head")
         self.detail.append_steps(log)
 

@@ -25,7 +25,7 @@ KINDS = {
 @dataclass
 class BenchRow:
     kind: str
-    param: int                 
+    param: int                  # số bit khoá hoặc số byte dữ liệu
     median_s: float
     repeats: int
 

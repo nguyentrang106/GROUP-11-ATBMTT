@@ -5,7 +5,7 @@ from pathlib import Path
 MASK = 0xFFFFFFFF
 BLOCK_SIZE = 64
 DIGEST_SIZE = 32
-CHUNK_SIZE = 64 * 1024          
+CHUNK_SIZE = 64 * 1024            # đọc tệp 64 KB / lần
 
 H0 = (
     0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
@@ -93,7 +93,7 @@ def compress_reference(H: list[int], block: bytes) -> list[int]:
 
 
 class SHA256:
-    # Băm theo từng phần (Merkle–Damgård): 
+    # Băm theo từng phần (Merkle–Damgård): update() nhiều lần rồi digest()
 
     digest_size = DIGEST_SIZE
     block_size = BLOCK_SIZE
@@ -137,7 +137,7 @@ def sha256(data: bytes) -> bytes:
 
 
 def sha256_file(path: Path, progress=None) -> bytes:
-    # Băm tệp theo khối 64 KB:
+    # Băm tệp theo khối 64 KB (không đọc cả tệp vào bộ nhớ)
     path = Path(path)
     total = path.stat().st_size
     h, done = SHA256(), 0

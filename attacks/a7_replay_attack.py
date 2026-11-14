@@ -46,21 +46,21 @@ def run(logger: StepLogger | None = None, defended: bool = False, bits: int = 10
         order_obj.update(nonce=secrets.token_hex(16), time=now())
     order = canonical_json(order_obj)
     sig = sign(order, priv)
-    log.log("[1] Trang ký lệnh chuyển tiền", 'S = Sign_d_A(lệnh)', order.decode())
+    log.log("[1] Sender ký lệnh chuyển tiền", 'S = Sign_d_A(lệnh)', order.decode())
 
     results = [bank.submit(order, sig) for _ in range(3)]
     for i, (ok, why) in enumerate(results):
-        log.log(f"[{i + 2}] {'Trang gửi' if i == 0 else 'Phương phát lại y nguyên'}", None, why,
+        log.log(f"[{i + 2}] {'Sender gửi' if i == 0 else 'Attacker phát lại y nguyên'}", None, why,
                 level="" if i == 0 else ("bad" if ok else "ok"))
 
     if defended:
         tweaked = dict(order_obj, nonce=secrets.token_hex(16))
         ok, why = bank.submit(canonical_json(tweaked), sig)
-        log.log("[5] Phương đổi nonce mới để lách, giữ chữ ký cũ", None, why, level="bad" if ok else "ok")
+        log.log("[5] Attacker đổi nonce mới để lách, giữ chữ ký cũ", None, why, level="bad" if ok else "ok")
 
     accepted = sum(ok for ok, _ in results)
     success = accepted > 1
-    log.note("Tổng tiền bị chuyển", f"{bank.moved:,} VNĐ (Trang chỉ muốn chuyển 1.000.000)")
+    log.note("Tổng tiền bị chuyển", f"{bank.moved:,} VNĐ (Sender chỉ muốn chuyển 1.000.000)")
     summary = (f"Lệnh được thực hiện {accepted} lần." if success else "Thất bại: lệnh chỉ được thực hiện một lần.")
     (log.bad if success else log.ok)("[KẾT LUẬN] " + summary + " Phòng chống: nonce/timestamp/số thứ tự trong phần được ký.")
     return AttackResult(NAME, success, summary, {"defended": defended, "accepted": accepted, "moved": bank.moved})

@@ -11,7 +11,7 @@ from core.rsa_primitives import rsasp1, rsavp1
 from core.step_logger import StepLogger
 from core.utils import byte_len, constant_time_eq, from_hex, i2osp, os2ip, short_hex
 
-# Ký thẳng giá trị băm theo slide, y = h(x)^a mod n; pkcs1v15: đệm EM theo RFC 8017 rồi mới lũy thừa
+# textbook: ký thẳng giá trị băm theo slide, y = h(x)^a mod n; pkcs1v15: đệm EM theo RFC 8017 rồi mới lũy thừa
 Scheme = Literal["textbook", "pkcs1v15"]
 SCHEMES: tuple[str, ...] = ("textbook", "pkcs1v15")
 SCHEME_LABELS = {"textbook": "Textbook", "pkcs1v15": "PKCS1v15"}
@@ -196,5 +196,5 @@ def verify_file(path: Path, bundle: SignatureBundle, pub: RSAPublicKey,
 
 
 def sign_raw_no_hash(m: int, priv: RSAPrivateKey) -> int:
-    """Ký trực tiếp số m, KHÔNG băm, KHÔNG đệm: s = m^d mod n. Chỉ dùng cho attacks/a1_no_hash_forgery.py."""
+    """⚠ Ký trực tiếp số m, KHÔNG băm, KHÔNG đệm: s = m^d mod n. CHỈ dùng cho attacks/a1_no_hash_forgery.py."""
     return rsasp1(priv, m)

@@ -48,7 +48,7 @@ def run(logger: StepLogger | None = None, defended: bool = False, bits: int = 10
     log.head(f"TẤN CÔNG A3: VA CHẠM HÀM BĂM — hệ thống dùng {hash_name}")
     hash_fn = sha256 if defended else weak_digest
     pub, priv = generate_keypair(bits)
-    log.note("[1] Phương soạn hai hợp đồng", f"THẬT: {HONEST}\nGIAN: {FRAUD}")
+    log.note("[1] Attacker soạn hai hợp đồng", f"THẬT: {HONEST}\nGIAN: {FRAUD}")
 
     limit = 1 << 10
     t = time.perf_counter()
@@ -66,11 +66,11 @@ def run(logger: StepLogger | None = None, defended: bool = False, bits: int = 10
                 f"Sau {tries} phép băm ({dt:.2f}s), thay vì 2^16 = 65536:\n"
                 f"H(thật) = {hash_fn(honest)[:2].hex()} = H(gian) = {hash_fn(fraud)[:2].hex()}")
         sig = sign_hash(hash_fn(honest), priv)
-        log.note("[3] Trang đọc bản thật (chỉ khác vài dấu cách) và ký")
+        log.note("[3] Sender đọc bản thật (chỉ khác vài dấu cách) và ký")
         res = verify_hash(hash_fn(fraud), sig, pub)
         success = res.valid
-        log.log("[4] Phương gắn chữ ký đó vào bản gian", None,
-                "HỢP LỆ: Trang bị ràng buộc bởi hợp đồng gian" if success else res.reason,
+        log.log("[4] Attacker gắn chữ ký đó vào bản gian", None,
+                "HỢP LỆ: Sender bị ràng buộc bởi hợp đồng gian" if success else res.reason,
                 level="bad" if success else "ok")
         details = {"defended": defended, "hashes": tries}
 

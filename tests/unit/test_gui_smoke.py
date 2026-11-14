@@ -74,7 +74,7 @@ def test_explanations_number_mixed_steps_and_keep_data(window):
     log.head("KỊCH BẢN S1")
     log.note("[1] trang ký", "M = trang_sign.json")
     log.ok("    thuy kiểm tra")
-    log.head("[2] Linh (Third Party) phân xử")
+    log.head("[2] Third Party phân xử")
     log.note("[3] phuong thử giả mạo")
     log.note("Bình phương và nhân")
     view = window.attacks_tab.steps
@@ -83,8 +83,8 @@ def test_explanations_number_mixed_steps_and_keep_data(window):
         view.next_step()
     titles = [view._lay.itemAt(i).widget().findChild(QLabel).text() for i in range(len(log.steps))]
     assert titles == [
-        "KỊCH BẢN S1", "1. Trang ( Sender ) ký", "2. Thủy ( Receiver ) kiểm tra",
-        "3. Linh ( Third Party ) phân xử", "4. Phương ( Attacker ) thử giả mạo",
+        "KỊCH BẢN S1", "1. Sender ký", "2. Receiver kiểm tra",
+        "3. Third Party phân xử", "4. Attacker thử giả mạo",
         "5. Bình phương và nhân",
     ]
     assert "M = trang_sign.json" in view.card_texts()

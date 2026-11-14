@@ -21,7 +21,7 @@ def run(logger: StepLogger | None = None, bits: int = 2048) -> ScenarioResult:
     root.self_signed_root(not_before=t0 - 400 * DAY)
     tsa = TimestampAuthority.create("TSA ATBMTT", bits)
     trang_pub, trang_priv = generate_keypair(bits)
-    trang_cert = root.issue("Trang", trang_pub, days=365, not_before=t0 - 100 * DAY)
+    trang_cert = root.issue("Sender", trang_pub, days=365, not_before=t0 - 100 * DAY)
     t_sign, t_leak, t_window, t_r = t0 - 30 * DAY, t0 - 20 * DAY, t0 - 15 * DAY, t0 - 10 * DAY
 
     def bundle(msg_sig: bytes, at: int | None) -> SignatureBundle:
@@ -30,22 +30,22 @@ def run(logger: StepLogger | None = None, bits: int = 2048) -> ScenarioResult:
 
     contract = "Hợp đồng thuê nhà 12 tháng, tiền thuê 8.000.000 VNĐ/tháng.".encode("utf-8")
     b1 = bundle(sign(contract, trang_priv), t_sign)
-    log.note(f"[1] {fmt_time(t_sign)}: Trang ký hợp đồng thuê nhà, TSA đóng dấu thời gian")
-    log.note(f"[2] {fmt_time(t_leak)}: Phương lấy cắp được khoá riêng của Trang (Trang chưa biết)")
-    window_doc = "Trang bán xe ô tô cho Phương giá 10.000.000 VNĐ.".encode("utf-8")
+    log.note(f"[1] {fmt_time(t_sign)}: Sender ký hợp đồng thuê nhà, TSA đóng dấu thời gian")
+    log.note(f"[2] {fmt_time(t_leak)}: Attacker lấy cắp được khoá riêng của Sender (Sender chưa biết)")
+    window_doc = "Sender bán xe ô tô cho Attacker giá 10.000.000 VNĐ.".encode("utf-8")
     b_window = bundle(sign(window_doc, trang_priv), t_window)
-    log.note(f"[3] {fmt_time(t_window)}: Phương ký văn bản giả, xin dấu thời gian THẬT")
+    log.note(f"[3] {fmt_time(t_window)}: Attacker ký văn bản giả, xin dấu thời gian THẬT")
     root.revoke(trang_cert.serial, at=t_r)
     crl = root.publish_crl()
-    log.note(f"[4] {fmt_time(t_r)} (= t_r): Trang báo mất khoá, CA thu hồi và công bố CRL có chữ ký",
+    log.note(f"[4] {fmt_time(t_r)} (= t_r): Sender báo mất khoá, CA thu hồi và công bố CRL có chữ ký",
              f"CRL: serial {trang_cert.serial} thu hồi từ {fmt_time(t_r)}")
 
-    fake = "Trang bán căn nhà cho Phương với giá 1 đồng.".encode("utf-8")
+    fake = "Sender bán căn nhà cho Attacker với giá 1 đồng.".encode("utf-8")
     fake_sig = sign(fake, trang_priv)
     b_after = bundle(fake_sig, t0)
     b_back = SignatureBundle(**{**b_after.__dict__, "timestamp_token": {**b_after.timestamp_token, "time": t_sign}})
     b_none = bundle(fake_sig, None)
-    log.note(f"[5] {fmt_time(t0)}: Phương dùng khoá lấy cắp ký văn bản giả, thử nhiều cách trình ra toà")
+    log.note(f"[5] {fmt_time(t0)}: Attacker dùng khoá lấy cắp ký văn bản giả, thử nhiều cách trình ra toà")
 
     roots = [root.certificate]
     r1 = arbitrate(contract, b1, roots, crl, tsa.public_key, t0)
@@ -59,7 +59,7 @@ def run(logger: StepLogger | None = None, bits: int = 2048) -> ScenarioResult:
     log.log("    Văn bản giả, không có timestamp", None, r4.reason, level="bad" if r4.valid else "ok")
 
     r_window = arbitrate(window_doc, b_window, roots, crl, tsa.public_key, t0)
-    log.log("[7] Giới hạn: văn bản Phương ký TRONG khoảng lộ khoá (t_leak <= t < t_r)", None,
+    log.log("[7] Giới hạn: văn bản Attacker ký TRONG khoảng lộ khoá (t_leak <= t < t_r)", None,
             ("Vẫn được công nhận — " if r_window.valid else "Bị từ chối — ") + r_window.reason +
             "\nToán học, CA và TSA không phân biệt được chữ ký này với chữ ký thật; chỉ giảm rủi ro bằng "
             "token/HSM có PIN, báo mất ngay, OCSP thay cho CRL định kỳ.", level="dim")

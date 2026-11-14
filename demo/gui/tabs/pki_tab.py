@@ -33,23 +33,36 @@ class PKITab(QWidget):
         lay = QVBoxLayout(self)
 
         self.bits = QComboBox()
-        self.bits.addItems(("1024", "2048"))
-        ctl = QGroupBox("Thao tác")
-        grid = QGridLayout(ctl)
-        actions = [
-            ("1. Tạo Root CA + Intermediate CA + TSA", self.create_cas),
-            ("2.1. Cấp chứng chỉ cho Trang ( Sender )", lambda: self.issue("trang")),
-            ("2.2. Cấp chứng chỉ cho Thủy ( Receiver )", lambda: self.issue("thuy")),
-            ("3. Trang ( Sender ) ký hợp đồng + dấu thời gian", self.trang_signs),
-            ("4. Kiểm tra chữ ký + chứng chỉ + timestamp", self.verify_signed),
-            ("Thu hồi chứng chỉ đang chọn", self.revoke_selected),
-            ("Kiểm tra chuỗi chứng chỉ đang chọn", self.verify_selected),
-            ("Phương ( Attacker ) sửa hợp đồng rồi kiểm tra lại", self.tamper_contract),
+        self.bits.addItems(("1024", "2048", "3072"))
+        cert_box = QGroupBox("1. Chứng thực khoá công khai (CA cấp và kiểm tra chứng chỉ)")
+        cert_box.setObjectName("CertGroup")
+        cert_grid = QGridLayout(cert_box)
+        cert_actions = [
+            ("1.1. Tạo Root CA + Intermediate CA + TSA", self.create_cas),
+            ("1.2. Cấp chứng chỉ cho Sender", lambda: self.issue("trang")),
+            ("1.3. Cấp chứng chỉ cho Receiver", lambda: self.issue("thuy")),
+            ("1.4. Kiểm tra chuỗi chứng chỉ đang chọn", self.verify_selected),
+            ("1.5. Thu hồi chứng chỉ đang chọn", self.revoke_selected),
         ]
-        for i, (text, slot) in enumerate(actions):
-            grid.addWidget(button(text, slot), i // 4, i % 4)
+        for i, (text, slot) in enumerate(cert_actions):
+            cert_grid.addWidget(button(text, slot), i // 3, i % 3)
+
+        nonrep_box = QGroupBox("2. Chống chối bỏ (ký + dấu thời gian, Third Party phân xử)")
+        nonrep_box.setObjectName("NonRepGroup")
+        nonrep_grid = QGridLayout(nonrep_box)
+        nonrep_actions = [
+            ("2.1. Sender ký hợp đồng + dấu thời gian", self.trang_signs),
+            ("2.2. Sender chối bỏ → Third Party phân xử", self.verify_signed),
+            ("2.3. Attacker sửa hợp đồng → Third Party phân xử", self.tamper_contract),
+        ]
+        for i, (text, slot) in enumerate(nonrep_actions):
+            b = button(text, slot)
+            b.setProperty("variant", "nonrep")
+            nonrep_grid.addWidget(b, 0, i)
+
         lay.addLayout(hbox(QLabel("Độ dài khoá của CA và người dùng:"), self.bits, None))
-        lay.addWidget(ctl)
+        lay.addWidget(cert_box)
+        lay.addWidget(nonrep_box)
         self.badge = ResultBadge()
         lay.addWidget(self.badge)
 
@@ -69,7 +82,7 @@ class PKITab(QWidget):
         lay.addWidget(split, 1)
     def _need_cas(self) -> bool:
         if self.root is None:
-            common.show_info(self, "Chưa có CA", "Bấm '1. Tạo Root CA + Intermediate CA + TSA' trước.")
+            common.show_info(self, "Chưa có CA", "Bấm '1.1. Tạo Root CA + Intermediate CA + TSA' trước.")
             return False
         return True
 
@@ -141,7 +154,7 @@ class PKITab(QWidget):
 
         def job():
             keys = generate_keypair(bits)
-            return keys, inter.issue({"trang": "Trang", "thuy": "Thủy"}.get(name, name), keys[0])
+            return keys, inter.issue({"trang": "Sender", "thuy": "Receiver"}.get(name, name), keys[0])
 
         def done(res) -> None:
             self.people[name] = res
@@ -188,7 +201,7 @@ class PKITab(QWidget):
         if not self._need_cas():
             return
         if "trang" not in self.people:
-            common.show_info(self, "Chưa có chứng chỉ", "Bấm '2.1. Cấp chứng chỉ cho Trang ( Sender )' trước.")
+            common.show_info(self, "Chưa có chứng chỉ", "Bấm '1.2. Cấp chứng chỉ cho Sender' trước.")
             return
         (_, priv), cert = self.people["trang"]
         tsa, contract = self.tsa, self.contract
@@ -200,16 +213,16 @@ class PKITab(QWidget):
 
         def done(bundle) -> None:
             self.bundle = bundle
-            self.out.append("\n=== Trang ( Sender ) ký contract.txt, TSA đóng dấu thời gian ===\n")
+            self.out.append("\n=== Sender ký contract.txt, TSA đóng dấu thời gian ===\n")
             self.out.append(f"S     = {bundle.signature_hex[:64]}…\n"
                             f"token = Sign_TSA(SHA256(S) || t), t = {fmt_time(bundle.timestamp_token['time'])}\n")
-            self.badge.set_info("Trang ( Sender ) đã ký — bấm '4. Kiểm tra'")
+            self.badge.set_info("Sender đã ký — bấm '2.2. Sender chối bỏ → Third Party phân xử'")
 
-        self.app.run(job, done, status="Trang ( Sender ) đang ký…", owner=self)
+        self.app.run(job, done, status="Sender đang ký…", owner=self)
 
     def _arbitrate(self, message: bytes) -> None:
         if self.bundle is None:
-            common.show_info(self, "Chưa có chữ ký", "Bấm '3. Trang ( Sender ) ký hợp đồng + dấu thời gian' trước.")
+            common.show_info(self, "Chưa có chữ ký", "Bấm '2.1. Sender ký hợp đồng + dấu thời gian' trước.")
             return
         res = arbitrate(message, self.bundle, [self.root.certificate], self._crls(), self.tsa.public_key,
                         intermediates=[self.inter.certificate])
@@ -218,12 +231,12 @@ class PKITab(QWidget):
 
     def verify_signed(self) -> None:
         if self._need_cas():
-            self.out.append("\n--- Linh ( Third Party ) kiểm tra: chữ ký, dấu thời gian, chuỗi chứng chỉ tại thời điểm ký ---\n")
+            self.out.append("\n--- Sender chối bỏ chữ ký. Third Party kiểm tra: chữ ký, dấu thời gian, chuỗi chứng chỉ tại thời điểm ký ---\n")
             self._arbitrate(self.contract)
 
     def tamper_contract(self) -> None:
         if self._need_cas():
-            self.out.append("\n--- Phương ( Attacker ) sửa 1 byte hợp đồng rồi trình chữ ký cũ ---\n")
+            self.out.append("\n--- Attacker sửa 1 byte hợp đồng rồi trình chữ ký cũ ---\n")
             bad = bytearray(self.contract)
             bad[len(bad) // 2] ^= 0x01
             self._arbitrate(bytes(bad))

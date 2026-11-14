@@ -44,7 +44,7 @@ class AttacksTab(QWidget):
         ll.addWidget(self.list, 1)
         self.defended = QCheckBox("Bật biện pháp phòng chống")
         self.bits = QComboBox()
-        self.bits.addItems(("1024", "2048"))
+        self.bits.addItems(("1024", "2048", "3072"))
         ll.addWidget(self.defended)
         ll.addLayout(hbox(QLabel("Khoá cho kịch bản:"), self.bits, None))
         ll.addLayout(hbox(button("Chạy", self.run_selected), button("Chạy tất cả tấn công", self.run_all_attacks), None))

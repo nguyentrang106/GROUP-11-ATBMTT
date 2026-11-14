@@ -24,7 +24,7 @@ def participant_text(text: str) -> str:
                 or re.match(r"\s+(?:pháp|trình|hướng|án|tiện)\b", text[match.end():], re.IGNORECASE)
             ):
                 return match.group()
-            return f"{name} ( {role} )"
+            return role
 
         text = re.sub(pattern, replace, text, flags=re.IGNORECASE)
     return text

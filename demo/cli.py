@@ -104,7 +104,7 @@ def cmd_pki_demo(bits: int = 1024) -> None:
     root = CertificateAuthority.create("Root CA ATBMTT", bits)
     root.self_signed_root()
     inter = root.create_intermediate("Intermediate CA ATBMTT", bits)
-    trang = inter.issue("Trang", generate_keypair(bits)[0])
+    trang = inter.issue("Sender", generate_keypair(bits)[0])
     for c in (root.certificate, inter.certificate, trang):
         print(_color(f"--- Chứng chỉ của {c.subject} ---", "head"))
         print(c.describe())
@@ -150,8 +150,8 @@ def gen_samples(bits: int = 2048, say=print) -> None:
 
     root = CertificateAuthority("Root CA ATBMTT", pairs["root_ca"])
     key_io.write_json(certs / "root_ca.cert.json", root.self_signed_root().to_dict())
-    trang_cert = root.issue("Trang", pairs["trang_sign"][0], days=730)
-    for fname, cert in (("trang.cert.json", trang_cert), ("thuy.cert.json", root.issue("Thủy", pairs["thuy_sign"][0], 730)),
+    trang_cert = root.issue("Sender", pairs["trang_sign"][0], days=730)
+    for fname, cert in (("trang.cert.json", trang_cert), ("thuy.cert.json", root.issue("Receiver", pairs["thuy_sign"][0], 730)),
                         ("tsa.cert.json", root.issue("TSA ATBMTT", pairs["tsa"][0], 730))):
         key_io.write_json(certs / fname, cert.to_dict())
     say("certs/: root_ca, trang, thuy, tsa (.cert.json)")

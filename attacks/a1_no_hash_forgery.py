@@ -16,14 +16,14 @@ def run(logger: StepLogger | None = None, defended: bool = False, bits: int = 10
     pub, priv = generate_keypair(bits)
     m1, m2 = 2, 50_000_000
     target = m1 * m2
-    log.note("[1] Trang chịu ký hai lệnh vô hại", f"M1 = 'trả {m1} đồng', M2 = 'trả {m2:,} đồng'")
+    log.note("[1] Sender chịu ký hai lệnh vô hại", f"M1 = 'trả {m1} đồng', M2 = 'trả {m2:,} đồng'")
 
     if not defended:
         s1, s2 = sign_raw_no_hash(m1, priv), sign_raw_no_hash(m2, priv)
-        log.log("    Trang ký trực tiếp số (không băm, không đệm)", 'sᵢ = mᵢ^d mod n',
+        log.log("    Sender ký trực tiếp số (không băm, không đệm)", 'sᵢ = mᵢ^d mod n',
                 f"s1 = 0x{format(s1, 'x')[:32]}…\ns2 = 0x{format(s2, 'x')[:32]}…")
         s3 = (s1 * s2) % pub.n
-        log.log("[2] Phương nhân hai chữ ký, không cần khoá riêng", 's₃ = (s₁ · s₂) mod n',
+        log.log("[2] Attacker nhân hai chữ ký, không cần khoá riêng", 's₃ = (s₁ · s₂) mod n',
                 f"s3 = 0x{format(s3, 'x')[:32]}…")
         success = rsavp1(pub, s3) == target % pub.n
         log.log("[3] Kiểm tra s3 cho M3 = M1·M2", 's₃^e mod n ≡ m₁ · m₂ (mod n)',
@@ -32,11 +32,11 @@ def run(logger: StepLogger | None = None, defended: bool = False, bits: int = 10
     else:
         msg1, msg2 = f"trả {m1} đồng".encode(), f"trả {m2} đồng".encode()
         s1, s2 = sign(msg1, priv), sign(msg2, priv)
-        log.note("    Trang ký trên SHA-256(M) có đệm PKCS#1 v1.5")
+        log.note("    Sender ký trên SHA-256(M) có đệm PKCS#1 v1.5")
         s3 = i2osp((os2ip(s1) * os2ip(s2)) % pub.n, byte_len(pub.n))
         res = verify_detailed(f"trả {target} đồng".encode(), s3, pub)
         success = res.valid
-        log.log("[2] Phương vẫn nhân hai chữ ký và gắn vào M3", None, res.reason, level="bad" if success else "ok")
+        log.log("[2] Attacker vẫn nhân hai chữ ký và gắn vào M3", None, res.reason, level="bad" if success else "ok")
 
     summary = ("Giả mạo thành công: chữ ký RSA thuần có tính nhân." if success else
                "Thất bại: băm + đệm phá vỡ tính nhân.")

@@ -85,7 +85,7 @@ class MainWindow(QMainWindow):
         self.bench_tab = BenchmarkTab(self)
         self.test_tab = TestTab(self)
         for tab, name in ((self.tiny_tab, "1. Tiny RSA"), (self.sign_tab, "2. Ký & Kiểm tra"),
-                          (self.encrypt_tab, "3. Ký rồi mã hoá"), (self.pki_tab, "4. PKI & Chống chối bỏ"),
+                          (self.encrypt_tab, "3. Ký rồi mã hoá"), (self.pki_tab, "4. Chứng thực & Chống chối bỏ"),
                           (self.attacks_tab, "5. Phân tích an toàn"), (self.bench_tab, "6. Hiệu năng"),
                           (self.test_tab, "7. Kiểm thử")):
             self.tabs.addTab(tab, amp(name))

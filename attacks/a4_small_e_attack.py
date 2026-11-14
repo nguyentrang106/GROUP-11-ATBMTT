@@ -31,12 +31,12 @@ def run(logger: StepLogger | None = None, defended: bool = False, bits: int = 30
     checker = "verify_strict" if defended else "verify_sloppy"
     log.head(f"TẤN CÔNG A4: e = 3, BỘ KIỂM TRA {checker}")
     pub, _ = generate_keypair(bits, e=3)
-    message = "Trang chuyển toàn bộ cổ phần công ty cho Phương.".encode("utf-8")
+    message = "Sender chuyển toàn bộ cổ phần công ty cho Attacker.".encode("utf-8")
     h = sha256(message)
-    log.note(f"[1] Khoá công khai của Trang: e = 3, n {bits} bit. Phương muốn chữ ký cho", message.decode())
+    log.note(f"[1] Khoá công khai của Sender: e = 3, n {bits} bit. Attacker muốn chữ ký cho", message.decode())
 
     s = forge(pub, h)
-    log.log("[2] Phương dựng EM có phần rác ở cuối rồi lấy căn bậc ba nguyên",
+    log.log("[2] Attacker dựng EM có phần rác ở cuối rồi lấy căn bậc ba nguyên",
             's = ⌈∛(00 01 FF 00 || DigestInfo || H || 00 … 00)⌉',
             f"s = 0x{format(s, 'x')[:40]}… ({s.bit_length()} bit, rất nhỏ so với n)")
     em = i2osp(rsavp1(pub, s), byte_len(pub.n))

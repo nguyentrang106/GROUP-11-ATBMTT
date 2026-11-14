@@ -42,7 +42,7 @@ class TinyRSA:
         keypair_from_primes(self.p, self.q, self.e, logger)
 
     def hash_value(self, message: bytes | int, logger: StepLogger | None = None) -> int:
-        """h(x): bytes thì băm SHA-256 rồi lấy mod n; số nguyên thì ký thẳng x (ví dụ lớp số nhỏ, nên không băm trước)."""
+        """h(x): bytes thì băm SHA-256 rồi lấy mod n; số nguyên thì ký thẳng x (ví dụ lớp, không băm)."""
         if isinstance(message, int):
             if not 0 <= message < self.n:
                 raise ValueError(f"x phải thoả 0 <= x < n = {self.n}")
@@ -65,7 +65,7 @@ class TinyRSA:
         if logger is not None and with_keygen:
             self.keygen_steps(logger)
         if logger is not None:
-            logger.head("KÝ (Trang dùng khoá bí mật)")
+            logger.head("KÝ (Sender dùng khoá bí mật)")
         h = self.hash_value(message, logger)
         y = mod_pow(h, self.a, self.n, logger)
         if logger is not None:
@@ -76,7 +76,7 @@ class TinyRSA:
     def verify(self, message: bytes | int, y: int, logger: StepLogger | None = None) -> bool:
         """Kiểm tra: y^b mod n == h(x) ?"""
         if logger is not None:
-            logger.head("KIỂM TRA (Thủy dùng khoá công khai của Trang)")
+            logger.head("KIỂM TRA (Receiver dùng khoá công khai của Sender)")
         h = self.hash_value(message, logger)
         if not 0 <= y < self.n:
             if logger is not None:
@@ -113,7 +113,7 @@ def encrypt_pair(receiver: TinyRSA, message: bytes | int, y: int, logger: StepLo
                          f"Cần chọn n_B lớn hơn n_A (để y < n_B) và lớn hơn 255 khi x là văn bản.")
     z = [mod_pow(v, receiver.e, receiver.n) for _, v in parts]
     if logger is not None:
-        logger.head("MÃ HOÁ (Trang dùng khoá công khai e_B của Thủy)")
+        logger.head("MÃ HOÁ (Sender dùng khoá công khai e_B của Receiver)")
         logger.table(f"Mã hoá z = e_B(x, y) với (e_B, n_B) = ({receiver.e}, {receiver.n})",
                      ("Thành phần", "m", "z = m^e_B mod n_B"),
                      [(name, v, c) for (name, v), c in zip(parts, z)],
@@ -124,13 +124,13 @@ def encrypt_pair(receiver: TinyRSA, message: bytes | int, y: int, logger: StepLo
 
 def decrypt_pair(receiver: TinyRSA, z: list[int], as_bytes: bool,
                  logger: StepLogger | None = None) -> tuple[bytes | int, int]:
-    """Thủy giải mã (x, y) = d_B(z); chữ ký còn phải kiểm tra riêng bằng khoá công khai của Trang."""
+    """Receiver giải mã (x, y) = d_B(z); chữ ký còn phải kiểm tra riêng bằng khoá công khai của Sender."""
     if len(z) < 2:
         raise ValueError("Bản mã z phải có ít nhất một khối x và một khối y")
     parts = [mod_pow(c, receiver.d, receiver.n) for c in z]
     names = [f"x[{i}]" for i in range(len(z) - 1)] if as_bytes else ["x"]
     if logger is not None:
-        logger.head("GIẢI MÃ (Thủy dùng khoá bí mật d_B)")
+        logger.head("GIẢI MÃ (Receiver dùng khoá bí mật d_B)")
         logger.table(f"Giải mã (x, y) = d_B(z) với (d_B, n_B) = ({receiver.d}, {receiver.n})",
                      ("Thành phần", "z", "m = z^d_B mod n_B"),
                      [(name, c, m) for name, c, m in zip(names + ["y"], z, parts)],

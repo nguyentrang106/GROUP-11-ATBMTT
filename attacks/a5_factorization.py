@@ -37,7 +37,7 @@ def run(logger: StepLogger | None = None, defended: bool = False, bits: int | No
     bits = bits or (2048 if defended else 64)
     log.head(f"TẤN CÔNG A5: PHÂN TÍCH n {bits} BIT")
     pub, _ = generate_keypair(bits)
-    log.note("[1] Khoá công khai của Trang", f"e = {pub.e}\nn = {pub.n if bits <= 128 else hex(pub.n)[:42] + '…'}")
+    log.note("[1] Khoá công khai của Sender", f"e = {pub.e}\nn = {pub.n if bits <= 128 else hex(pub.n)[:42] + '…'}")
 
     with Timer() as t:
         p = pollard_rho(pub.n, max_steps)
@@ -52,11 +52,11 @@ def run(logger: StepLogger | None = None, defended: bool = False, bits: int | No
         log.log(f"[2] Pollard rho tìm được thừa số sau {t.elapsed:.3f}s",
                 'g = gcd(|x − y|, n)', f"p = {p}\nq = {q}")
         log.log("[3] Tính lại khoá riêng", 'd = e⁻¹ mod ((p − 1)(q − 1))', f"d = {d}")
-        fake = "Trang đồng ý chuyển 100 triệu cho Phương".encode("utf-8")
+        fake = "Sender đồng ý chuyển 100 triệu cho Attacker".encode("utf-8")
         h = toy_hash(fake, pub.n)
         s = mod_pow(h, d, pub.n)
         success = mod_pow(s, pub.e, pub.n) == h
-        log.log("[4] Phương ký giả bằng d vừa tính, Thủy kiểm tra bằng (n, e) của Trang",
+        log.log("[4] Attacker ký giả bằng d vừa tính, Receiver kiểm tra bằng (n, e) của Sender",
                 's = h^d mod n; s^e mod n = h',
                 f"M = {fake.decode()}\nh = {h}, s = {s} → " + ("HỢP LỆ" if success else "sai"),
                 level="bad" if success else "ok")

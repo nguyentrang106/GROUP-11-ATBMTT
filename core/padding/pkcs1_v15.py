@@ -30,7 +30,7 @@ def verify_strict(em: bytes, message_hash: bytes) -> bool:
 
 
 def verify_sloppy(em: bytes, message_hash: bytes) -> bool:
-    # BỘ KIỂM TRA CÓ LỖI CỐ Ý, chỉ dùng cho attacks/a4_small_e_attack.py.
+    # BỘ KIỂM TRA CÓ LỖI CỐ Ý — chỉ dùng cho attacks/a4_small_e_attack.py.
     # Mô phỏng lỗi của nhiều thư viện trước 2006 (Bleichenbacher, CRYPTO 2006 rump session)
     if em[:2] != b"\x00\x01":
         return False

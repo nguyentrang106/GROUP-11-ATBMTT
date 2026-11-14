@@ -30,12 +30,12 @@ def wait(qtbot, window):
 def test_encrypted_workflow(window, qtbot, tmp_path, scheme):
     tab = window.encrypt_tab
     tab.scheme.setCurrentText(scheme)
-    tab.src.set_text("Hợp đồng của Trang gửi Thủy")
+    tab.src.set_text("Hợp đồng của Sender gửi Receiver")
     tab.sign_and_seal()
     wait(qtbot, window)
     assert tab.envelope is not None and tab.received is None
     tab.verify()
-    assert "Cần giải mã z" in window.messages[-1]
+    assert "Cần giải mã bản mã" in window.messages[-1]
     # Lưu và nạp lại qua đường đọc tệp thực.
     path = tmp_path / "message.enc.json"
     path.write_text(json.dumps(tab.envelope), encoding="utf-8")
@@ -103,7 +103,7 @@ def test_missing_key_and_message_limit(window):
     tab.receiver_pub = None
     tab.src.set_text("Thông điệp")
     tab.sign_and_seal()
-    assert window.messages[-1][1] == "Thiếu khoá Thủy ( Receiver )"
+    assert window.messages[-1][1] == "Thiếu khoá Receiver"
 
 
 def test_forwarding_button_runs_a8(window, qtbot):

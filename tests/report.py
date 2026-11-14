@@ -32,7 +32,7 @@ SIGNATURE_CASES = (
     "Mặc định: thông điệp rỗng",
     "Mặc định: văn bản tiếng Việt UTF-8",
     "Mặc định: tệp ảnh nhị phân photo_small.jpg",
-    "Ký rồi mã hoá: giải mã z ra đúng x và chữ ký hợp lệ",
+    "Ký rồi mã hoá: giải mã bản mã ra đúng x và chữ ký hợp lệ",
     "PKCS#1: thông điệp rỗng",
     "PKCS#1: văn bản tiếng Việt UTF-8",
     "PKCS#1: tệp ảnh nhị phân photo_small.jpg",
@@ -40,7 +40,7 @@ SIGNATURE_CASES = (
     "Sửa 1 bit chữ ký → từ chối",
     "Dùng sai khoá công khai → từ chối",
     "Mặc định: sửa 1 bit thông điệp → từ chối",
-    "Ký rồi mã hoá: giải mã z bằng sai khoá → từ chối",
+    "Ký rồi mã hoá: giải mã bản mã bằng sai khoá → từ chối",
 )
 
 
@@ -95,8 +95,8 @@ def check_tiny_slide() -> list[CheckRow]:
         _row(g, "keypair_from_primes(17, 11, 7): n, φ, d", (pub.n, (17 - 1) * (11 - 1), priv.d), (187, 160, 23), src),
         _row(g, "Tiny: ký h = 88 (p=17, q=11, e=7)", f"s = {s}", "s = 11", src),
         _row(g, "Tiny: kiểm tra 11^7 mod 187 = 88", tiny.verify(88, s), True, src),
-        _row(g, "Tiny: ký rồi mã hoá cho Thủy (23, 13, 5): z = e_B(88, 11)", z, [264, 189], "Tự tính tay"),
-        _row(g, "Tiny: Thủy giải mã z rồi kiểm tra", (x2, y2, tiny.verify(x2, y2)), (88, 11, True), "Tự tính tay"),
+        _row(g, "Tiny: ký rồi mã hoá cho Receiver (23, 13, 5): z = e_B(88, 11)", z, [264, 189], "Tự tính tay"),
+        _row(g, "Tiny: Receiver giải mã bản mã rồi kiểm tra", (x2, y2, tiny.verify(x2, y2)), (88, 11, True), "Tự tính tay"),
         _row(g, "mod_pow ngẫu nhiên 2048 bit vs pow()", *_pow_pair(), "Python pow"),
     ]
 
@@ -153,7 +153,7 @@ def check_signature_cases(pub: RSAPublicKey, priv: RSAPrivateKey,
         sg.verify(vi, bytes(flipped_sig), pub),
         sg.verify(vi, sig_vi, wrong_pub),
         sg.verify(bytes(flipped_msg), tb_vi, pub, "textbook"),
-        _unseal_ok(envelope, priv),                    # Trang không có d_B của Thủy
+        _unseal_ok(envelope, priv),                    # Sender không có d_B của Receiver
     ]
     expected = [True] * 7 + [False] * 5
     return [_row(g, c, ok, exp, src) for c, ok, exp in zip(SIGNATURE_CASES, results, expected)]
@@ -161,7 +161,7 @@ def check_signature_cases(pub: RSAPublicKey, priv: RSAPrivateKey,
 
 def _seal_roundtrip(message: bytes, priv: RSAPrivateKey, pub: RSAPublicKey, receiver_pub: RSAPublicKey,
                     receiver_priv: RSAPrivateKey) -> bool:
-    # Trang ký bằng a_A, mã hoá bằng e_B; Thủy giải mã bằng d_B rồi kiểm tra bằng b_A
+    # Sender ký bằng a_A, mã hoá bằng e_B; Receiver giải mã bằng d_B rồi kiểm tra bằng b_A
     y = sg.sign(message, priv, "textbook")
     z = seal(message, sg.SignatureBundle("textbook", "x.txt", sha256(message).hex(), y.hex()), receiver_pub)
     x2, bundle = unseal(z, receiver_priv)

@@ -60,7 +60,7 @@ def keypair_from_primes(p: int, q: int, e: int, logger: StepLogger | None = None
 
 
 def generate_keypair(bits: int = 2048, e: int = DEFAULT_E) -> tuple[RSAPublicKey, RSAPrivateKey]:
-    """Sinh cặp khoá ngẫu nhiên có n đúng bits
+    """Sinh cặp khoá ngẫu nhiên có n đúng `bits` bit.
 
     - p, q mỗi số khoảng bits/2 bit, bật 2 bit cao nhất để n.bit_length() == bits.
     - gcd(e, p - 1) = gcd(e, q - 1) = 1 (tương đương gcd(e, phi(n)) = 1).
