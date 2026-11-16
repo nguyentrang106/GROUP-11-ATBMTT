@@ -47,7 +47,7 @@ class AttacksTab(QWidget):
         self.bits.addItems(("1024", "2048", "3072"))
         ll.addWidget(self.defended)
         ll.addLayout(hbox(QLabel("Khoá cho kịch bản:"), self.bits, None))
-        ll.addLayout(hbox(button("Chạy", self.run_selected), button("Chạy tất cả tấn công", self.run_all_attacks), None))
+        ll.addLayout(hbox(button("Chạy", self.run_selected), button("Chạy tất cả các tấn công", self.run_all_attacks), None))
         split.addWidget(left)
 
         right = QWidget()
@@ -140,4 +140,4 @@ class AttacksTab(QWidget):
                                   ok_text="ĐÚNG KỲ VỌNG", bad_text="CÓ TẤN CÔNG SAI KỲ VỌNG")
             self.steps.set_steps(log.steps)
 
-        self.app.run(job, done, status="Đang chạy toàn bộ tấn công…", owner=self)
+        self.app.run(job, done, status="Đang chạy toàn bộ các tấn công…", owner=self)

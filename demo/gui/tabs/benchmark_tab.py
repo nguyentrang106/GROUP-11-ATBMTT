@@ -44,7 +44,7 @@ class BenchmarkTab(QWidget):
         keys = [b for b, c in self.key_boxes.items() if c.isChecked()]
         data = [s for s, c in self.data_boxes.items() if c.isChecked()]
         if not keys and not data:
-            common.show_info(self, "Chưa chọn", "Chọn ít nhất một kích thước khoá hoặc dữ liệu.")
+            common.show_info(self, "Chưa chọn tham số", "Chọn ít nhất một độ dài khoá hoặc một kích thước dữ liệu.")
             return
         repeats = self.repeats.value()
         self.app.run(lambda report: run_benchmark(keys, data, repeats, progress=report), self._done,

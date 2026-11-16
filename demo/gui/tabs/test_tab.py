@@ -14,7 +14,7 @@ class TestTab(QWidget):
         self.app = app
         self.rows = []
         lay = QVBoxLayout(self)
-        self.slow = QCheckBox("Gồm ca chậm (SHA-256 của 1 000 000 ký tự 'a')")
+        self.slow = QCheckBox("Bao gồm ca kiểm thử chậm (băm SHA-256 cho 1.000.000 ký tự 'a')")
         self.summary = QLabel("Bấm Chạy để xem kết quả các ca kiểm thử.")
         lay.addLayout(hbox(button("Chạy kiểm thử", self.start), self.slow, None))
         lay.addWidget(self.summary)

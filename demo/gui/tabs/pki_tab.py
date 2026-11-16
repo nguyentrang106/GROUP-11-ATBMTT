@@ -16,7 +16,7 @@ from pki.chain_verify import verify_chain
 from pki.timestamp import TimestampAuthority
 from scenarios.s3_non_repudiation_contract import arbitrate
 
-FALLBACK_CONTRACT = "HỢP ĐỒNG MUA BÁN — Tổng giá trị: 2.000.000.000 VNĐ".encode("utf-8")
+FALLBACK_CONTRACT = "HỢP ĐỒNG MUA BÁN - Tổng giá trị: 2.000.000.000 VNĐ".encode("utf-8")
 
 
 class PKITab(QWidget):
@@ -216,7 +216,7 @@ class PKITab(QWidget):
             self.out.append("\n=== Sender ký contract.txt, TSA đóng dấu thời gian ===\n")
             self.out.append(f"S     = {bundle.signature_hex[:64]}…\n"
                             f"token = Sign_TSA(SHA256(S) || t), t = {fmt_time(bundle.timestamp_token['time'])}\n")
-            self.badge.set_info("Sender đã ký — bấm '2.2. Sender chối bỏ → Third Party phân xử'")
+            self.badge.set_info("Sender đã ký - bấm '2.2. Sender chối bỏ → Third Party phân xử'")
 
         self.app.run(job, done, status="Sender đang ký…", owner=self)
 

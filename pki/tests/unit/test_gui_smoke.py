@@ -30,7 +30,7 @@ def test_window_has_seven_tabs(window):
 
 def test_tiny_x88_shows_y11(window):
     tab = window.tiny_tab
-    tab.load_class_example()
+    tab.generate_key()
     tab.sign()
     assert tab.y.value() == 11
     assert any("y = 11" in t for t in tab.steps.card_texts())
@@ -41,7 +41,7 @@ def test_tiny_x88_shows_y11(window):
 
 def test_tiny_sign_then_encrypt(window):
     tab = window.tiny_tab
-    tab.load_class_example()
+    tab.generate_key()
     tab.encrypt_flow.setChecked(True)
     tab.sign()
     tab.encrypt()
@@ -55,7 +55,7 @@ def test_tiny_sign_then_encrypt(window):
 
 def test_tiny_shows_all_steps(window):
     tab = window.tiny_tab
-    tab.load_class_example()
+    tab.generate_key()
     assert tab.steps.shown > 0 and not tab.steps.has_next()
     tab.sign()
     assert tab.steps.shown > 0 and not tab.steps.has_next()
@@ -114,6 +114,50 @@ def test_formulas_and_step_values_are_literal_text(window):
     value = next(label for label in view.findChildren(QLabel) if label.text() == body)
     assert value.textFormat() == Qt.TextFormat.PlainText
     assert formula in log.to_text() and body in log.to_text()
+
+
+def test_receiver_mode_follows_last_signature(window, qtbot, tmp_path):
+    tab = window.sign_tab
+    sample = tmp_path / "sample.txt"
+    sample.write_text("Thông điệp mẫu", encoding="utf-8")
+
+    tab.src.set_text("Văn bản tự viết")
+    tab.sign()
+    _wait(qtbot, window)
+    assert tab.recv.text_mode.isChecked()
+    assert not tab.recv.file_mode.isEnabled()
+    tab.recv.set_file(sample)
+    tab.recv.file_mode.setChecked(True)
+    assert tab.recv.text_mode.isChecked()
+    assert tab.recv.get()[0] == "Văn bản tự viết".encode()
+
+    tab.src.set_file(sample)
+    # Chưa ký lại thì bên nhận vẫn dùng chế độ của chữ ký cũ.
+    assert tab.recv.text_mode.isChecked()
+    tab.sign()
+    _wait(qtbot, window)
+    assert tab.recv.file_mode.isChecked()
+    assert not tab.recv.text_mode.isEnabled()
+    tab.recv.set_text("Văn bản khác")
+    tab.recv.text_mode.setChecked(True)
+    assert tab.recv.file_mode.isChecked()
+    assert tab.recv.file() == sample
+    tab.verify()
+    _wait(qtbot, window)
+    assert tab.badge.text() == "HỢP LỆ"
+    tab.flip_message()
+    tab.verify()
+    _wait(qtbot, window)
+    assert tab.badge.text() == "KHÔNG HỢP LỆ"
+
+    tab.src.set_text("Văn bản mới")
+    tab.sign()
+    _wait(qtbot, window)
+    assert tab.recv.text_mode.isChecked()
+    assert not tab.recv.file_mode.isEnabled()
+    tab.verify()
+    _wait(qtbot, window)
+    assert tab.badge.text() == "HỢP LỆ"
 
 
 def test_sign_verify_text_and_tamper(window, qtbot):

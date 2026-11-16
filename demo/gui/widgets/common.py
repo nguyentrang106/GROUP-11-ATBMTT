@@ -136,6 +136,7 @@ class DataSource(QWidget):
 
     def __init__(self, title: str, lines: int = 5) -> None:
         super().__init__()
+        self._locked_file_mode: bool | None = None
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
         self.text_mode = QRadioButton("Văn bản")
@@ -146,8 +147,12 @@ class DataSource(QWidget):
         group.addButton(self.file_mode)
         self.path = QLineEdit()
         self.path.setPlaceholderText("Chọn tệp hoặc kéo-thả tệp vào cửa sổ")
+        self.path.textChanged.connect(self.path.setToolTip)
         self.browse_btn = button("Chọn tệp...", self._browse)
-        lay.addLayout(hbox(bold_label(title), self.text_mode, self.file_mode, self.path, self.browse_btn, None))
+        lay.addLayout(hbox(bold_label(title), self.text_mode, None, self.file_mode))
+        file_layout = hbox(self.path, self.browse_btn)
+        file_layout.setStretch(0, 1)
+        lay.addLayout(file_layout)
         self.text = text_box(lines)
         lay.addWidget(self.text)
         self.file_mode.toggled.connect(self._mode)
@@ -155,9 +160,21 @@ class DataSource(QWidget):
 
     def _mode(self) -> None:
         file = self.file_mode.isChecked()
+        if self._locked_file_mode is not None and file != self._locked_file_mode:
+            (self.file_mode if self._locked_file_mode else self.text_mode).setChecked(True)
+            return
         self.path.setVisible(file)
         self.browse_btn.setVisible(file)
         self.text.setEnabled(not file)
+
+    def lock_mode(self, file: bool | None) -> None:
+        """Giữ chế độ nhận giống nguồn đã ký; None cho phép chọn lại."""
+        self._locked_file_mode = file
+        if file is not None:
+            (self.file_mode if file else self.text_mode).setChecked(True)
+        self.text_mode.setEnabled(file is None or not file)
+        self.file_mode.setEnabled(file is None or file)
+        self._mode()
 
     def _browse(self) -> None:
         p, _ = QFileDialog.getOpenFileName(self, "Chọn tệp", str(SAMPLE / "messages"))
@@ -165,10 +182,14 @@ class DataSource(QWidget):
             self.set_file(Path(p))
 
     def set_file(self, path: Path) -> None:
+        if self._locked_file_mode is False:
+            return
         self.file_mode.setChecked(True)
         self.path.setText(str(path))
 
     def set_text(self, text: str) -> None:
+        if self._locked_file_mode is True:
+            return
         self.text_mode.setChecked(True)
         self.text.setPlainText(text)
 

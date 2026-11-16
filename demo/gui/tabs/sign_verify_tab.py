@@ -42,7 +42,7 @@ class SignVerifyTab(QWidget):
         self.key_info = QLabel("Chưa có khoá")
         open_btn = button("Chọn khoá mẫu", self.open_key)
         open_btn.setMinimumWidth(open_btn.sizeHint().width() + 16)    # luôn hiện đủ chữ, không bị cắt
-        ll.addLayout(hbox(QLabel("Khoá:"), self.bits, button("Sinh khoá mới", self.generate), open_btn, None))
+        ll.addLayout(hbox(QLabel("Khoá:"), self.bits, button("Sinh khoá mới", self.generate), None, open_btn))
         ll.addWidget(self.key_info)
         self.src = DataSource("Thông điệp cần ký", lines=4)
         self.src.path.textChanged.connect(self._preview)
@@ -54,8 +54,7 @@ class SignVerifyTab(QWidget):
         self.scheme = QComboBox()
         self.scheme.addItems(tuple(SCHEMES))
         self.time_label = QLabel("")
-        ll.addLayout(hbox(QLabel("Lược đồ:"), self.scheme, button("Ký", self.sign), self.time_label, None,
-                          button("Lưu chữ ký (.sig.json)", self.save_sig)))
+        ll.addLayout(hbox(QLabel("Lược đồ:"), self.scheme, button("Ký", self.sign), self.time_label, None))
         self.hash_view = HexView("1. h(x) = SHA-256(x)", 1, expandable=False)
         self.em_view = HexView("2. m đưa vào lũy thừa (Mặc định: m = h(x); PKCS#1: m = EM)", 3)
         self.sig_view = HexView("3. Chữ ký y = m^a mod n", 4)
@@ -69,15 +68,17 @@ class SignVerifyTab(QWidget):
         self.recv.path.textChanged.connect(self._clear_override)
         rl.addWidget(self.recv, 1)
         self.sig_label = QLabel("Chữ ký: (chưa có)")
-        rl.addLayout(hbox(button("Dùng thông điệp + chữ ký vừa ký", self.use_last),
-                          button("Mở chữ ký (.sig.json)", self.open_sig), None))
         rl.addWidget(self.sig_label)
-        rl.addLayout(hbox(button("Kiểm tra", self.verify), button("Attacker lật 1 bit thông điệp", self.flip_message),
+        rl.addLayout(hbox(button("Attacker lật 1 bit thông điệp", self.flip_message),
                           button("Attacker lật 1 bit chữ ký", self.flip_signature), None))
+        verify_box = QGroupBox("Kiểm tra chữ ký")
+        verify_layout = QVBoxLayout(verify_box)
+        verify_layout.addLayout(hbox(button("Kiểm tra", self.verify), None))
         self.badge = ResultBadge()
-        rl.addWidget(self.badge)
+        verify_layout.addWidget(self.badge)
         self.detail = OutputBox()
-        rl.addWidget(self.detail, 3)
+        verify_layout.addWidget(self.detail, 1)
+        rl.addWidget(verify_box, 3)
 
         lay.addWidget(left, 1)
         lay.addWidget(right, 1)
@@ -85,7 +86,7 @@ class SignVerifyTab(QWidget):
     def _set_key(self, pub: RSAPublicKey, priv: RSAPrivateKey | None, origin: str) -> None:
         self.pub, self.priv = pub, priv
         self.key_info.setText(f"{origin}: n {pub.n.bit_length()} bit, e = {pub.e}"
-                              + ("" if priv else " (chỉ khoá công khai - không ký được)"))
+                              + ("" if priv else " (chỉ có khoá công khai, không thể ký)"))
 
     def _load_default_key(self) -> None:
         path = SAMPLE / "keys" / "trang_sign.json"
@@ -189,6 +190,7 @@ class SignVerifyTab(QWidget):
     def use_last(self) -> None:
         if self.bundle is None:
             return
+        self.recv.lock_mode(self._last_file is not None)
         if self._last_file is not None:
             self.recv.set_file(self._last_file)
         else:
@@ -209,6 +211,7 @@ class SignVerifyTab(QWidget):
             return
         self._received_override = None
         self.sig_label.setText(f"Chữ ký: {path.name} ({self.bundle.scheme}, tệp gốc: {self.bundle.message_file})")
+        self.recv.lock_mode(True)
         msg = path.parent.parent / "messages" / self.bundle.message_file
         if msg.is_file():
             self.recv.set_file(msg)
@@ -228,7 +231,7 @@ class SignVerifyTab(QWidget):
             return
         data[len(data) // 2] ^= 0x01
         self._received_override = bytes(data)
-        self.detail.append(f"Attacker lật 1 bit ở byte thứ {len(data) // 2:,} của thông điệp nhận được.\n", "bad")
+        self.detail.append(f"Attacker lật 1 bit tại vị trí byte {len(data) // 2:,} của thông điệp nhận được (đếm từ 0).\n", "bad")
 
     def flip_signature(self) -> None:
         if self.bundle is None:
@@ -240,7 +243,7 @@ class SignVerifyTab(QWidget):
 
     def verify(self) -> None:
         if self.bundle is None or self.pub is None:
-            common.show_warning(self, "Thiếu dữ liệu", "Cần có chữ ký (ký ở bên trái hoặc mở .sig.json) và khoá công khai.")
+            common.show_warning(self, "Thiếu dữ liệu", "Cần ký thông điệp ở bên trái và có khoá công khai.")
             return
         override = self._received_override
         file = self.recv.file() if override is None else None

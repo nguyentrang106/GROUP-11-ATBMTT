@@ -17,7 +17,7 @@ from demo.gui.widgets.common import button, glass, hbox, mono_font
 from demo.gui.widgets.result_badge import ResultBadge
 from demo.gui.widgets.step_view import StepView
 
-# Ví dụ trên lớp (slide 43–44): p = 17, q = 11, e = 7, x = 88. Khoá Receiver chọn n_B = 299 > n_A = 187.
+# Ví dụ trên lớp (slide 43-44): p = 17, q = 11, e = 7, x = 88. Khoá Receiver chọn n_B = 299 > n_A = 187.
 CLASS_EXAMPLE = {"p": 17, "q": 11, "e": 7, "x": 88, "p_b": 23, "q_b": 13, "e_b": 5}
 
 # (khoá, tên tab, mô tả, chữ khi chưa có dữ liệu) - thứ tự đúng luồng của slide: ký -> mã hoá -> giải mã -> kiểm tra
@@ -104,11 +104,15 @@ class TinyTab(QWidget):
         self.p_b, self.q_b, self.e_b = spin(ex["p_b"], 2), spin(ex["q_b"], 2), spin(ex["e_b"], 2)
         self.x_num = spin(ex["x"])
         self.y = spin(0)
-        for field in (self.p, self.q, self.e, self.p_b, self.q_b, self.e_b, self.x_num, self.y):
+        for field in (self.p, self.q, self.e, self.p_b, self.q_b, self.e_b, self.y):
             field.setFixedWidth(68)
         self.message = QLineEdit("Thu Trang")
+        for field in (self.message, self.x_num):
+            field.setMinimumWidth(68)
+            field.setMaximumWidth(16777215)
+            field.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.use_msg = QRadioButton("Có băm: x =")
-        self.use_raw = QRadioButton("Không băm (VD): x =")
+        self.use_raw = QRadioButton("Không băm: x =")
         self.use_raw.setChecked(True)
         grp = QButtonGroup(self)
         grp.addButton(self.use_msg)
@@ -127,12 +131,14 @@ class TinyTab(QWidget):
         action_box.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
         action_layout = QVBoxLayout(action_box)
         action_layout.setSpacing(4)
-        action_layout.addLayout(hbox(self.use_msg, self.message, self.use_raw, self.x_num))
+        message_layout = hbox(self.use_msg, self.message, self.use_raw, self.x_num)
+        message_layout.setStretch(1, 1)
+        message_layout.setStretch(3, 1)
+        action_layout.addLayout(message_layout)
         self.encrypt_flow = QCheckBox("Ký rồi mã hoá")
         self.encrypt_flow.toggled.connect(self._sync_flow)
         action_layout.addLayout(hbox(button("Ký", self.sign), QLabel("Chữ ký y ="), self.y,
-                                     button("Kiểm tra", self.verify), None, self.encrypt_flow,
-                                     button("Nạp ví dụ", self.load_class_example)))
+                                     button("Kiểm tra", self.verify), None, self.encrypt_flow))
         controls = hbox(key_box, action_box, spacing=8)
         controls.setStretch(0, 2)
         controls.setStretch(1, 3)
@@ -231,24 +237,14 @@ class TinyTab(QWidget):
         self._key = None
         self._z = None
         self.y.setValue(0)
-        self.key_info.setText("Tham số đã thay đổi — bấm Sinh khoá để cập nhật.")
+        self.key_info.setText("Tham số đã thay đổi - bấm Sinh khoá để cập nhật.")
         self.clear()
 
     def _invalidate_key_b(self) -> None:
         self._key_b = None
         self._z = None
-        self.key_b_info.setText("Tham số của Receiver đã thay đổi — bấm Sinh khoá Receiver để cập nhật.")
+        self.key_b_info.setText("Tham số của Receiver đã thay đổi - bấm Sinh khoá Receiver để cập nhật.")
         self._reset("key_b", "enc", "dec")
-
-    def load_class_example(self) -> None:
-        ex = CLASS_EXAMPLE
-        for field, key in ((self.p, "p"), (self.q, "q"), (self.e, "e"), (self.x_num, "x"),
-                           (self.p_b, "p_b"), (self.q_b, "q_b"), (self.e_b, "e_b")):
-            field.setValue(ex[key])
-        self.use_raw.setChecked(True)
-        self.generate_key()
-        self.badge.set_info("Đã nạp ví dụ lớp", f"p = {ex['p']}, q = {ex['q']}, e = {ex['e']}, x = {ex['x']} "
-                                                f"— bấm Ký")
 
     def _reset(self, *keys: str) -> None:
         placeholders = {key: text for key, _, _, text in SECTIONS}
@@ -299,12 +295,12 @@ class TinyTab(QWidget):
             info.setText(f"Đầu vào: dòng 0 có r0 = φ(n) = {tiny.phi}, r1 = b = e = {tiny.e}, t0 = 0, t1 = 1. "
                          f"Lặp đến khi r2 = 0.")
             result.setText(f"Kết quả: r1 = 1 nên a = d = t1 = {tiny.a} "
-                           f"(kiểm tra: {tiny.e}*{tiny.a} mod {tiny.phi} = {(tiny.e * tiny.a) % tiny.phi})")
+                           f"(kiểm tra bằng phép tính {tiny.e}*{tiny.a} mod {tiny.phi} = {(tiny.e * tiny.a) % tiny.phi})")
         else:
             info.setText(f"Đầu vào: dòng 0 có r0 = φ(n_B) = {tiny.phi}, r1 = e_B = {tiny.e}, t0 = 0, t1 = 1. "
                          f"Lặp đến khi r2 = 0.")
             result.setText(f"Kết quả: r1 = 1 nên d_B = t1 = {tiny.d} "
-                           f"(kiểm tra: {tiny.e}*{tiny.d} mod {tiny.phi} = {(tiny.e * tiny.d) % tiny.phi})")
+                           f"(kiểm tra bằng phép tính {tiny.e}*{tiny.d} mod {tiny.phi} = {(tiny.e * tiny.d) % tiny.phi})")
         self._select(key)
         self.badge.set_info(f"Đã sinh khoá của {owner}", "Xem bảng Euclid mở rộng bên phải.")
 
@@ -362,7 +358,7 @@ class TinyTab(QWidget):
     def _h_source(tiny: TinyRSA, h: int, hashed: bool) -> str:
         if hashed:
             return f"h(x) = SHA-256(x) mod {tiny.n} = {h}"
-        return f"Không băm: h(x) = x = {h}"
+        return f"Không băm, dùng h(x) = x = {h}"
 
     @staticmethod
     def _x_text(message: bytes | int) -> str:
@@ -431,7 +427,7 @@ class TinyTab(QWidget):
         _, info, _, result = self.sections["sign"]
         info.setText(f"Đầu vào: x = {self._x_text(message)}; {self._h_source(tiny, h, isinstance(message, bytes))}; "
                      f"a = {tiny.a} = {tiny.a:b} (nhị phân). "
-                     f"Đọc b_i từ trái sang phải: luôn bình phương f, b_i = 1 thì nhân thêm h(x).")
+                     f"Đọc b_i từ trái sang phải. Ở mỗi bước, bình phương f; nếu b_i = 1 thì nhân thêm h(x).")
         result.setText(f"Kết quả: y = {h}^{tiny.a} mod {tiny.n} = {y}")
         self._select("sign")
         nxt = "bấm Mã hoá" if self.encrypt_flow.isChecked() else "bấm Kiểm tra"
@@ -476,7 +472,7 @@ class TinyTab(QWidget):
                      f"({receiver.e}, {receiver.n}). Mỗi khối phải nhỏ hơn n_B.")
         result.setText(f"Kết quả: z = e_B(x, y) = {_blocks(z)}")
         self._select("enc")
-        self.badge.set_info("Đã mã hoá", "Gửi bản mã cho Receiver — bấm Giải mã bản mã rồi kiểm tra")
+        self.badge.set_info("Đã mã hoá", "Gửi bản mã cho Receiver - bấm Giải mã bản mã rồi kiểm tra")
 
     def tamper_z(self) -> None:
         if self._z is None or self._key_b is None:
@@ -486,7 +482,7 @@ class TinyTab(QWidget):
         self._z[0] = (old + 1) % self._key_b.n
         self.sections["enc"][3].setText(f"Bản mã z bị Attacker sửa thành {_blocks(self._z)} "
                                          f"(khối đầu {old} → {self._z[0]})")
-        self.badge.set_info("Attacker đã sửa bản mã", f"Khối đầu của bản mã: {old} → {self._z[0]} — bấm Giải mã bản mã rồi kiểm tra")
+        self.badge.set_info("Attacker đã sửa bản mã", f"Khối đầu của bản mã: {old} → {self._z[0]} - bấm Giải mã bản mã rồi kiểm tra")
 
     def decrypt_verify(self) -> None:
         if self._z is None or self._key_b is None:
@@ -515,7 +511,7 @@ class TinyTab(QWidget):
             self._show(log)
             self._fill(self.sections["dec"][2], self._table(log, "Giải mã"))
             self._select("dec")
-            self.badge.set_result(False, f"Giải mã ra x không hợp lệ: {err}")
+            self.badge.set_result(False, f"Giá trị x sau khi giải mã không hợp lệ.\n{err}")
             return
         self._show(log)
         self._fill(self.sections["dec"][2], self._table(log, "Giải mã"))

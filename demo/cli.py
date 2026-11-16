@@ -163,7 +163,7 @@ def gen_samples(bits: int = 2048, say=print) -> None:
     say("signatures/contract.txt.sig.json (trang ký, kèm chứng chỉ + dấu thời gian)")
 MENU = """
 ==================== HỆ CHỮ KÝ ĐIỆN TỬ RSA ====================
-1. Tiny RSA — ký/kiểm tra từng bước (p=17, q=11, e=7)
+1. Tiny RSA - ký/kiểm tra từng bước (p=17, q=11, e=7)
 2. Sinh cặp khoá RSA (1024/2048/3072)
 3. Ký tệp
 4. Kiểm tra chữ ký tệp
@@ -237,7 +237,7 @@ def menu() -> None:
 def main(argv: list[str] | None = None) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
-    ap = argparse.ArgumentParser(prog="python -m demo.cli", description="Hệ chữ ký điện tử RSA — CLI")
+    ap = argparse.ArgumentParser(prog="python -m demo.cli", description="Hệ chữ ký điện tử RSA - CLI")
     sub = ap.add_subparsers(dest="cmd")
     sub.add_parser("menu", help="menu số (mặc định)")
     t = sub.add_parser("tiny", help="Tiny RSA từng bước")
