@@ -20,7 +20,7 @@ from demo.gui.widgets.step_view import StepView
 # Ví dụ trên lớp (slide 43–44): p = 17, q = 11, e = 7, x = 88. Khoá Receiver chọn n_B = 299 > n_A = 187.
 CLASS_EXAMPLE = {"p": 17, "q": 11, "e": 7, "x": 88, "p_b": 23, "q_b": 13, "e_b": 5}
 
-# (khoá, tên tab, mô tả, chữ khi chưa có dữ liệu) — thứ tự đúng luồng của slide: ký -> mã hoá -> giải mã -> kiểm tra
+# (khoá, tên tab, mô tả, chữ khi chưa có dữ liệu) - thứ tự đúng luồng của slide: ký -> mã hoá -> giải mã -> kiểm tra
 SECTIONS = (
     ("key_a", "Khoá A", "Euclid mở rộng: a = d = e^(-1) mod φ(n)",
      "Bấm Sinh khoá để xem bảng tìm a = e^(-1) mod φ(n)."),
@@ -435,7 +435,7 @@ class TinyTab(QWidget):
         result.setText(f"Kết quả: y = {h}^{tiny.a} mod {tiny.n} = {y}")
         self._select("sign")
         nxt = "bấm Mã hoá" if self.encrypt_flow.isChecked() else "bấm Kiểm tra"
-        self.badge.set_info(f"Đã ký: y = {y}", f"n = {tiny.n}, φ(n) = {tiny.phi}, a = {tiny.a} — {nxt}")
+        self.badge.set_info(f"Đã ký: y = {y}", f"n = {tiny.n}, φ(n) = {tiny.phi}, a = {tiny.a} - {nxt}")
 
     def verify(self) -> None:
         tiny = self._current_key()

@@ -76,7 +76,7 @@ def sample_image() -> bytes:
 
 # ---- 1. Ví dụ tính tay trong slide ----------------------------------------------------------------------
 def check_tiny_slide() -> list[CheckRow]:
-    g, src = "Tiny / Slide", "Slide"
+    g, src = "Tiny", "Slide"
     pub, priv = keypair_from_primes(17, 11, 7)
     tiny = TinyRSA(17, 11, 7)
     s = tiny.sign(88)
